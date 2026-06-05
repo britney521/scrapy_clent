@@ -1,0 +1,55 @@
+2026-06-05 10:03:19,181 | DEBUG    | MainThread | 日志系统测试
+{
+  "taskId": "test",
+  "status": "ok"
+}
+2026-06-05 10:07:16,480 | DEBUG    | MainThread | 点击启动任务
+{
+  "taskId": "891690317127770197",
+  "targetUrl": "https://item.taobao.com/item.htm?id=738675081704",
+  "status": "FAILED"
+}
+2026-06-05 10:07:16,482 | DEBUG    | Dummy-1 | 启动爬虫线程
+{
+  "taskId": "891690317127770197",
+  "targetUrl": "https://item.taobao.com/item.htm?id=738675081704",
+  "browserPath": "/Applications/GPT Chrome.app/Contents/MacOS/GptBrowser",
+  "userDataPath": "/Users/britlee/.crawler_taobao_browser_profile"
+}
+2026-06-05 10:07:16,614 | DEBUG    | MainThread | 回传服务端状态失败
+{
+  "taskId": "891690317127770197",
+  "status": "RUNNING",
+  "error": "",
+  "exception": "400 Client Error: Bad Request for url: http://127.0.0.1:8000/api/tasks/891690317127770197/status/",
+  "message": "fail；任务领取后超过2分钟未完成上传，已标记为超时"
+}
+2026-06-05 10:07:49,244 | DEBUG    | Dummy-1 | 爬虫任务异常
+{
+  "taskId": "891690317127770197",
+  "error": "\nThe connection to the page has been disconnected.\nVersion: 4.1.1.4"
+}
+2026-06-05 10:07:49,383 | DEBUG    | MainThread | 回传服务端状态失败
+{
+  "taskId": "891690317127770197",
+  "status": "FAILED",
+  "error": "\nThe connection to the page has been disconnected.\nVersion: 4.1.1.4",
+  "exception": "400 Client Error: Bad Request for url: http://127.0.0.1:8000/api/tasks/891690317127770197/status/",
+  "message": "fail；任务领取后超过2分钟未完成上传，已标记为超时"
+}
+2026-06-05 11:57:16,108 | DEBUG    | MainThread | 开始从服务端队列领取任务
+{
+  "username": "123britney",
+  "apiBaseUrl": "http://101.34.208.172:5006/api"
+}
+2026-06-05 11:57:18,179 | DEBUG    | MainThread | 从服务端队列领取任务成功
+{
+  "username": "123britney",
+  "count": 0,
+  "tasks": []
+}
+2026-06-05 11:57:19,273 | DEBUG    | MainThread | 领取任务流程结束
+{
+  "username": "123britney",
+  "cooldownRemaining": 0
+}

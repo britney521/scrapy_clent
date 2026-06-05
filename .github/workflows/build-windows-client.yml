@@ -1,0 +1,59 @@
+name: Build Windows Client EXE
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'client/**'
+      - 'common/**'
+      - 'requirements-client.txt'
+      - 'client_app.spec'
+      - 'scripts/build_client.py'
+      - '.github/workflows/build-windows-client.yml'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+          cache-dependency-path: requirements-client.txt
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-client.txt
+
+      - name: Syntax check
+        shell: pwsh
+        run: |
+          python -m py_compile common/project_settings.py common/logging_config.py client/api_client.py client/scasrpy.py client/main.py
+
+      - name: Build exe with PyInstaller
+        shell: pwsh
+        env:
+          CRAWLER_API_BASE: http://101.34.208.172:5006/api
+        run: |
+          python scripts/build_client.py
+
+      - name: Package artifact
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/crawler-client/* -DestinationPath crawler-client-windows.zip -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: crawler-client-windows
+          path: crawler-client-windows.zip
+          if-no-files-found: error
+          retention-days: 14
