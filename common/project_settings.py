@@ -21,7 +21,7 @@ def env_int(name: str, default: int) -> int:
 
 
 # 服务端 API / 客户端登录默认值
-CRAWLER_API_BASE = os.getenv('CRAWLER_API_BASE', 'http://101.34.208.172:5006/api')
+CRAWLER_API_BASE = os.getenv('CRAWLER_API_BASE', 'http://127.0.0.1:8000/api')
 CRAWLER_API_USERNAME = os.getenv('CRAWLER_API_USERNAME', '')
 CRAWLER_API_PASSWORD = os.getenv('CRAWLER_API_PASSWORD', '')
 
@@ -46,7 +46,7 @@ QT_SETTINGS_ORG = os.getenv('CRAWLER_QT_SETTINGS_ORG', 'CrawlerClient')
 QT_SETTINGS_APP = os.getenv('CRAWLER_QT_SETTINGS_APP', 'DistributedCrawler')
 
 # 任务时间策略
-TASK_CLAIM_TIMEOUT_SECONDS = env_int('TASK_CLAIM_TIMEOUT_SECONDS', 120)
+TASK_CLAIM_TIMEOUT_SECONDS = env_int('TASK_CLAIM_TIMEOUT_SECONDS', 7200)
 TASK_FETCH_COOLDOWN_SECONDS = env_int('TASK_FETCH_COOLDOWN_SECONDS', 180)
 
 # 外部队列拉取配置

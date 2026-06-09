@@ -3,6 +3,7 @@ import sys
 import json
 import time
 import random
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -58,6 +59,40 @@ BROWSER_USER_DATA_PATH = CRAWLER_BROWSER_USER_DATA
 DATA_DIR = Path(CRAWLER_DATA_DIR)
 SETTINGS_ORG = QT_SETTINGS_ORG
 SETTINGS_APP = QT_SETTINGS_APP
+
+
+_BROWSER = None
+_BROWSER_LOCK = threading.Lock()
+
+
+def get_shared_browser():
+    global _BROWSER
+    with _BROWSER_LOCK:
+        if _BROWSER is not None:
+            try:
+                _BROWSER.tabs_count
+                return _BROWSER
+            except Exception:
+                _BROWSER = None
+        if ChromiumOptions is None or Chromium is None:
+            raise RuntimeError('DrissionPage 未安装，请先 pip install -r requirements.txt')
+        os.makedirs(BROWSER_USER_DATA_PATH, exist_ok=True)
+        co = ChromiumOptions().set_browser_path(BROWSER_PATH).set_user_data_path(BROWSER_USER_DATA_PATH)
+        _BROWSER = Chromium(co)
+        return _BROWSER
+
+
+def close_page_only(browser, page) -> None:
+    if browser is None or page is None:
+        return
+    try:
+        tab_id = getattr(page, 'tab_id', None) or getattr(page, 'id', None)
+        if tab_id:
+            browser.close_tabs(tab_id)
+        else:
+            page.close()
+    except Exception as exc:
+        debug_log('关闭任务页面失败，保留浏览器继续运行', {'error': str(exc)})
 
 
 def debug_log(title: str, payload: Any = None) -> None:
@@ -141,16 +176,22 @@ def task_countdown_text(row: dict) -> str:
     remaining = task_seconds_remaining(row)
     if remaining is None:
         return '-'
-    return f'{remaining // 60:02d}:{remaining % 60:02d}'
+    hours = remaining // 3600
+    minutes = (remaining % 3600) // 60
+    seconds = remaining % 60
+    return f'{hours:02d}:{minutes:02d}:{seconds:02d}'
 
 
 def is_timeout_message(message: str) -> bool:
-    return '超过2分钟' in (message or '') or '已标记为超时' in (message or '') or '已超时' in (message or '')
+    return '超过2小时' in (message or '') or '已标记为超时' in (message or '') or '已超时' in (message or '')
 
 
 def format_seconds(seconds: int) -> str:
     seconds = max(0, int(seconds))
-    return f'{seconds // 60:02d}:{seconds % 60:02d}'
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    seconds = seconds % 60
+    return f'{hours:02d}:{minutes:02d}:{seconds:02d}'
 
 
 def normalize_task(task: dict) -> dict:
@@ -398,7 +439,10 @@ class TaskTableModel(QAbstractTableModel):
         super().__init__()
         self.all_rows: list[dict[str, Any]] = []
         self.rows: list[dict[str, Any]] = []
+        self.filtered_rows: list[dict[str, Any]] = []
         self.status_filter = 'ALL'
+        self.page_size = 15
+        self.current_page = 1
 
     def set_tasks(self, tasks: list[dict]):
         self.beginResetModel()
@@ -416,8 +460,8 @@ class TaskTableModel(QAbstractTableModel):
             remaining = task_seconds_remaining(row)
             if remaining == 0 and row.get('status') in ('CLAIMED', 'RUNNING'):
                 row['status'] = 'TIMEOUT'
-                row['last_error'] = '任务领取后超过2分钟未完成上传，已超时'
-        self.rows = self.apply_filter(self.all_rows)
+                row['last_error'] = '任务领取后超过2小时未完成上传，已超时'
+        self._refresh_paged_rows()
         self.endResetModel()
 
     def reload(self):
@@ -426,8 +470,8 @@ class TaskTableModel(QAbstractTableModel):
             remaining = task_seconds_remaining(row)
             if remaining == 0 and row.get('status') in ('CLAIMED', 'RUNNING'):
                 row['status'] = 'TIMEOUT'
-                row['last_error'] = '任务领取后超过2分钟未完成上传，已超时'
-        self.rows = self.apply_filter(self.all_rows)
+                row['last_error'] = '任务领取后超过2小时未完成上传，已超时'
+        self._refresh_paged_rows()
         self.endResetModel()
 
     def upsert_task(self, task: dict):
@@ -435,7 +479,7 @@ class TaskTableModel(QAbstractTableModel):
         self.beginResetModel()
         self.all_rows = [row for row in self.all_rows if int(row['task_id']) != int(normalized['task_id'])]
         self.all_rows.insert(0, normalized)
-        self.rows = self.apply_filter(self.all_rows)
+        self._refresh_paged_rows()
         self.endResetModel()
 
     def update_task_status(self, task_id: int, status: str, last_error: str = ''):
@@ -448,6 +492,7 @@ class TaskTableModel(QAbstractTableModel):
 
     def set_status_filter(self, status_filter: str):
         self.status_filter = status_filter
+        self.current_page = 1
         self.reload()
 
     def apply_filter(self, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -456,6 +501,27 @@ class TaskTableModel(QAbstractTableModel):
         if self.status_filter == 'INCOMPLETE':
             return [row for row in rows if row.get('status') != 'SUCCESS']
         return rows
+
+    def _refresh_paged_rows(self):
+        self.filtered_rows = self.apply_filter(self.all_rows)
+        total_pages = self.total_pages()
+        self.current_page = min(max(1, self.current_page), total_pages)
+        start = (self.current_page - 1) * self.page_size
+        end = start + self.page_size
+        self.rows = self.filtered_rows[start:end]
+
+    def total_pages(self) -> int:
+        total = len(self.filtered_rows) if hasattr(self, 'filtered_rows') else len(self.apply_filter(self.all_rows))
+        return max(1, (total + self.page_size - 1) // self.page_size)
+
+    def total_count(self) -> int:
+        return len(self.filtered_rows)
+
+    def set_page(self, page: int):
+        self.beginResetModel()
+        self.current_page = min(max(1, int(page)), self.total_pages())
+        self._refresh_paged_rows()
+        self.endResetModel()
 
     def rowCount(self, parent=QModelIndex()):
         return len(self.rows)
@@ -506,6 +572,7 @@ class SpiderWorker(QThread):
     status_changed = Signal(object, str, str)
     data_fetched = Signal(object, list)
     login_required = Signal(object, str)
+    automation_stop_required = Signal(object, str)
 
     def __init__(self, task_id: int, target_url: str, min_delay: int = 10, max_delay: int = 15):
         super().__init__()
@@ -525,31 +592,50 @@ class SpiderWorker(QThread):
         })
         self.status_changed.emit(self.task_id, 'RUNNING', '')
         browser = None
+        page = None
         try:
-            if ChromiumOptions is None or Chromium is None:
-                raise RuntimeError('DrissionPage 未安装，请先 pip install -r requirements.txt')
-            os.makedirs(BROWSER_USER_DATA_PATH, exist_ok=True)
             wait_seconds = random.randint(self.min_delay, self.max_delay)
             debug_log('访问目标网站前随机等待', {'taskId': str(self.task_id), 'waitSeconds': wait_seconds})
             time.sleep(wait_seconds)
             if self.isInterruptionRequested():
                 raise RuntimeError('任务已停止，访问前中断')
-            co = ChromiumOptions().set_browser_path(BROWSER_PATH).set_user_data_path(BROWSER_USER_DATA_PATH)
-            # co.headless(True)
-            browser = Chromium(co)
-            page = browser.get_tab()
+            browser = get_shared_browser()
+            try:
+                page = browser.new_tab()
+            except Exception:
+                page = browser.get_tab()
             product = fetch_product(page, self.target_url)
             if self.isInterruptionRequested():
                 raise RuntimeError('任务已重新获取，旧任务中断')
+            if product.get('stop_automation') or product.get('risk_blocked'):
+                message = product.get('error') or '检测到账号访问异常限制，自动化已停止'
+                self.automation_stop_required.emit(self.task_id, message)
+                raise RuntimeError(message)
             if product.get('login_required'):
                 message = product.get('error') or '需要登录淘宝账号后再获取'
                 self.login_required.emit(self.task_id, message)
-                debug_log('检测到需要登录，等待 30 秒后重试', {'taskId': str(self.task_id), 'message': message})
-                time.sleep(30)
-                if self.isInterruptionRequested():
-                    raise RuntimeError('任务已重新获取，旧任务中断')
-                product = fetch_product(page, self.target_url)
-                if product.get('login_required'):
+                debug_log('检测到需要登录，最多等待 30 秒，每 2 秒检测一次', {
+                    'taskId': str(self.task_id),
+                    'message': message,
+                    'maxWaitSeconds': 30,
+                    'checkIntervalSeconds': 2,
+                })
+                logged_in = False
+                for waited in range(2, 31, 2):
+                    time.sleep(2)
+                    if self.isInterruptionRequested():
+                        raise RuntimeError('任务已重新获取，旧任务中断')
+                    product = fetch_product(page, self.target_url)
+                    if product.get('stop_automation') or product.get('risk_blocked'):
+                        message = product.get('error') or '检测到账号访问异常限制，自动化已停止'
+                        self.automation_stop_required.emit(self.task_id, message)
+                        raise RuntimeError(message)
+                    if not product.get('login_required'):
+                        logged_in = True
+                        debug_log('检测到已登录，继续当前任务', {'taskId': str(self.task_id), 'waitedSeconds': waited})
+                        break
+                    debug_log('仍未登录，继续等待', {'taskId': str(self.task_id), 'waitedSeconds': waited})
+                if not logged_in:
                     raise RuntimeError('等待 30 秒后仍未登录，任务失败')
             if self.isInterruptionRequested():
                 raise RuntimeError('任务已重新获取，旧任务中断')
@@ -560,11 +646,7 @@ class SpiderWorker(QThread):
             debug_log('爬虫任务异常', {'taskId': str(self.task_id), 'error': str(exc)})
             self.status_changed.emit(self.task_id, 'FAILED', str(exc))
         finally:
-            if browser is not None:
-                try:
-                    browser.quit()
-                except Exception:
-                    pass
+            close_page_only(browser, page)
 
 
 class SyncWorker(QObject):
@@ -611,10 +693,12 @@ class MainWindow(QMainWindow):
         self.sync_threads: list[QThread] = []
         self.sync_workers: list[SyncWorker] = []
         self.is_fetching_tasks = False
+        self.settings = QSettings(SETTINGS_ORG, SETTINGS_APP)
         self.auto_running = False
         self.current_task_id: int | None = None
         self.finished_task_ids: set[int] = set()
-        self.settings = QSettings(SETTINGS_ORG, SETTINGS_APP)
+        self.started_task_count = 0
+        self.task_limit = int(self.settings.value('crawler/task_limit', 100, int) or 100)
         self.api_username = API_USERNAME or self.settings.value('auth/username', '', str)
         self.api_password = API_PASSWORD or self.settings.value('auth/password', '', str)
         self.remember_login = self.settings.value('auth/remember', False, bool)
@@ -640,8 +724,8 @@ class MainWindow(QMainWindow):
         self.user_label.setStyleSheet('color: #374151; padding: 0 8px;')
         self.logout_btn = QPushButton('退出登录')
         self.logout_btn.clicked.connect(self.logout)
-        self.refresh_btn = QPushButton('刷新后台任务')
-        self.refresh_btn.clicked.connect(self.refresh_local)
+        self.taobao_login_btn = QPushButton('登录淘宝')
+        self.taobao_login_btn.clicked.connect(self.open_taobao_login_page)
         self.status_filter_box = QComboBox()
         self.status_filter_box.addItem('全部任务', 'ALL')
         self.status_filter_box.addItem('未完成', 'INCOMPLETE')
@@ -651,13 +735,15 @@ class MainWindow(QMainWindow):
         self.min_delay_edit.setFixedWidth(54)
         self.max_delay_edit = QLineEdit(str(self.settings.value('crawler/max_delay', 15, int) or 15))
         self.max_delay_edit.setFixedWidth(54)
+        self.task_limit_edit = QLineEdit(str(self.task_limit))
+        self.task_limit_edit.setFixedWidth(68)
         self.auto_btn = QPushButton('开始执行任务')
         self.auto_btn.setObjectName('PrimaryButton')
         self.auto_btn.clicked.connect(self.toggle_auto_run)
         self.login_action = toolbar.addWidget(self.login_btn)
         self.user_action = toolbar.addWidget(self.user_label)
         self.logout_action = toolbar.addWidget(self.logout_btn)
-        toolbar.addWidget(self.refresh_btn)
+        toolbar.addWidget(self.taobao_login_btn)
         toolbar.addWidget(QLabel('状态筛选：'))
         toolbar.addWidget(self.status_filter_box)
         toolbar.addSeparator()
@@ -666,13 +752,37 @@ class MainWindow(QMainWindow):
         toolbar.addWidget(QLabel('-'))
         toolbar.addWidget(self.max_delay_edit)
         toolbar.addWidget(QLabel('秒'))
+        toolbar.addSeparator()
+        toolbar.addWidget(QLabel('访问上限：'))
+        toolbar.addWidget(self.task_limit_edit)
+        toolbar.addWidget(QLabel('个任务'))
         toolbar.addWidget(self.auto_btn)
         self.addToolBar(toolbar)
 
         root = QWidget()
-        layout = QHBoxLayout(root)
+        layout = QVBoxLayout(root)
         layout.setContentsMargins(12, 12, 12, 12)
         layout.addWidget(self.table)
+
+        pager = QWidget()
+        pager_layout = QHBoxLayout(pager)
+        pager_layout.setContentsMargins(0, 8, 0, 0)
+        self.first_page_btn = QPushButton('首页')
+        self.prev_page_btn = QPushButton('上一页')
+        self.next_page_btn = QPushButton('下一页')
+        self.last_page_btn = QPushButton('末页')
+        self.page_label = QLabel('第 1 / 1 页，共 0 条')
+        self.first_page_btn.clicked.connect(lambda: self.goto_page(1))
+        self.prev_page_btn.clicked.connect(lambda: self.goto_page(self.model.current_page - 1))
+        self.next_page_btn.clicked.connect(lambda: self.goto_page(self.model.current_page + 1))
+        self.last_page_btn.clicked.connect(lambda: self.goto_page(self.model.total_pages()))
+        pager_layout.addStretch(1)
+        pager_layout.addWidget(self.first_page_btn)
+        pager_layout.addWidget(self.prev_page_btn)
+        pager_layout.addWidget(self.page_label)
+        pager_layout.addWidget(self.next_page_btn)
+        pager_layout.addWidget(self.last_page_btn)
+        layout.addWidget(pager)
         self.setCentralWidget(root)
         self.update_auth_ui()
         self.countdown_timer = QTimer(self)
@@ -717,6 +827,7 @@ class MainWindow(QMainWindow):
 
     def on_status_filter_changed(self):
         self.model.set_status_filter(self.status_filter_box.currentData())
+        self.update_pager_ui()
 
     def update_auto_button_state(self):
         if not hasattr(self, 'auto_btn'):
@@ -725,7 +836,7 @@ class MainWindow(QMainWindow):
             self.auto_btn.setEnabled(False)
             self.auto_btn.setText('请求任务中...')
             return
-        self.auto_btn.setEnabled(bool(self.api_username and self.api_password))
+        self.auto_btn.setEnabled(True)
         if self.auto_running:
             self.auto_btn.setText('停止执行')
             self.auto_btn.setStyleSheet('background:#dc2626;color:white;font-weight:600;border-radius:6px;padding:6px 12px;')
@@ -733,7 +844,7 @@ class MainWindow(QMainWindow):
             self.auto_btn.setText('开始执行任务')
             self.auto_btn.setStyleSheet('background:#2563eb;color:white;font-weight:600;border-radius:6px;padding:6px 12px;')
 
-    def show_login_dialog(self):
+    def show_login_dialog(self) -> bool:
         dialog = LoginDialog(
             self,
             username=self.api_username,
@@ -751,6 +862,8 @@ class MainWindow(QMainWindow):
             self.setWindowTitle(f'分布式爬虫客户端 - {self.api_username}')
             self.update_auth_ui()
             QTimer.singleShot(0, self.refresh_local)
+            return True
+        return False
 
     def logout(self):
         self.api_username = ''
@@ -785,12 +898,49 @@ class MainWindow(QMainWindow):
             self.setWindowTitle(f'分布式爬虫客户端 - {self.api_username}')
         self.update_auto_button_state()
 
+    def update_pager_ui(self):
+        if not hasattr(self, 'page_label'):
+            return
+        total_pages = self.model.total_pages()
+        current = self.model.current_page
+        total = self.model.total_count()
+        self.page_label.setText(f'第 {current} / {total_pages} 页，共 {total} 条，每页 15 条')
+        self.first_page_btn.setEnabled(current > 1)
+        self.prev_page_btn.setEnabled(current > 1)
+        self.next_page_btn.setEnabled(current < total_pages)
+        self.last_page_btn.setEnabled(current < total_pages)
+
+    def goto_page(self, page: int):
+        self.model.set_page(page)
+        self.update_pager_ui()
+
+    def open_taobao_login_page(self):
+        if not self.ensure_logged_in():
+            return
+        try:
+            browser = get_shared_browser()
+            try:
+                page = browser.new_tab('https://www.taobao.com/')
+            except TypeError:
+                page = browser.new_tab()
+                page.get('https://www.taobao.com/')
+            except Exception:
+                page = browser.get_tab()
+                page.get('https://www.taobao.com/')
+            debug_log('已打开淘宝主页用于手动登录', {'url': 'https://www.taobao.com/'})
+            self.statusBar().showMessage('已打开淘宝主页，请在浏览器中手动登录淘宝账号', 8000)
+        except Exception as exc:
+            message = f'打开淘宝登录页失败：{exc}'
+            debug_log('打开淘宝登录页失败', {'exception': str(exc)})
+            QMessageBox.warning(self, '打开失败', message)
+
     def refresh_local(self):
         if not self.ensure_logged_in():
             return
         try:
             tasks = ApiClient(API_BASE_URL, self.api_username, self.api_password).my_tasks()
             self.model.set_tasks(tasks)
+            self.update_pager_ui()
             self.statusBar().showMessage('后台任务已刷新', 3000)
         except Exception as exc:
             QMessageBox.warning(self, '刷新失败', friendly_api_error(exc, '后台任务刷新失败，请稍后重试'))
@@ -801,10 +951,16 @@ class MainWindow(QMainWindow):
             return
         if not self.ensure_logged_in():
             return
+        self.task_limit = self.get_task_limit_setting()
+        self.started_task_count = 0
         self.auto_running = True
         self.finished_task_ids.clear()
-        debug_log('自动执行任务已启动', {'username': self.api_username, 'apiBaseUrl': API_BASE_URL})
-        self.statusBar().showMessage('自动执行已启动：请求任务 → 爬取 → 上传 → 请求下一任务', 5000)
+        debug_log('自动执行任务已启动', {
+            'username': self.api_username,
+            'apiBaseUrl': API_BASE_URL,
+            'taskLimit': self.task_limit,
+        })
+        self.statusBar().showMessage(f'自动执行已启动：本轮最多执行 {self.task_limit} 个任务', 5000)
         self.update_auto_button_state()
         QTimer.singleShot(0, self.run_next_task)
 
@@ -829,6 +985,9 @@ class MainWindow(QMainWindow):
         if not self.ensure_logged_in():
             self.stop_auto_run('未登录，自动执行已停止')
             return
+        if self.started_task_count >= self.task_limit:
+            self.stop_auto_run(f'已达到本轮访问上限 {self.task_limit} 个任务，自动停止')
+            return
         if self.is_fetching_tasks:
             debug_log('领取任务被忽略：已有领取请求进行中', {'username': self.api_username})
             return
@@ -840,16 +999,20 @@ class MainWindow(QMainWindow):
             tasks = ApiClient(API_BASE_URL, self.api_username, self.api_password).fetch_tasks(limit=1)
             debug_log('从服务端队列领取任务成功', {'username': self.api_username, 'count': len(tasks), 'tasks': tasks})
             self.model.set_tasks(tasks + self.model.all_rows)
+            self.update_pager_ui()
             if not tasks:
                 self.statusBar().showMessage('当前没有可领取任务，10 秒后自动重试', 5000)
                 self.schedule_next_task(10000)
                 return
             task = normalize_task(tasks[0])
             self.current_task_id = int(task['task_id'])
+            self.started_task_count += 1
             debug_log('已领取任务，客户端本地准备执行商品采集', {
                 'taskId': str(self.current_task_id),
                 'minDelay': min_delay,
                 'maxDelay': max_delay,
+                'startedTaskCount': self.started_task_count,
+                'taskLimit': self.task_limit,
             })
             self.start_task(task, show_running_message=False, min_delay=min_delay, max_delay=max_delay)
         except Exception as exc:
@@ -872,6 +1035,17 @@ class MainWindow(QMainWindow):
             debug_log('领取任务流程结束', {
                 'username': self.api_username,
             })
+
+    def get_task_limit_setting(self) -> int:
+        try:
+            limit = int(self.task_limit_edit.text().strip())
+        except (TypeError, ValueError):
+            limit = 100
+        limit = max(1, min(limit, 100000))
+        self.task_limit_edit.setText(str(limit))
+        self.settings.setValue('crawler/task_limit', limit)
+        self.settings.sync()
+        return limit
 
     def get_visit_delay_settings(self) -> tuple[int, int]:
         def parse(edit: QLineEdit, default: int) -> int:
@@ -913,6 +1087,7 @@ class MainWindow(QMainWindow):
         worker.status_changed.connect(self.on_status_changed)
         worker.data_fetched.connect(self.on_data_fetched)
         worker.login_required.connect(self.on_login_required)
+        worker.automation_stop_required.connect(self.on_automation_stop_required)
         worker.finished.connect(lambda tid=task_id: self.workers.pop(tid, None))
         self.workers[task_id] = worker
         worker.start()
@@ -923,12 +1098,20 @@ class MainWindow(QMainWindow):
         debug_log('任务需要登录', {'taskId': str(task_id), 'message': message, 'waitSeconds': 30})
         self.statusBar().showMessage(f'任务 {task_id} 需要登录，请在 30 秒内完成登录', 20000)
 
+    def on_automation_stop_required(self, task_id: object, message: str):
+        task_id = int(task_id)
+        debug_log('检测到账号访问异常限制，立即停止自动化', {'taskId': str(task_id), 'message': message})
+        self.model.update_task_status(task_id, 'FAILED', message)
+        self.stop_auto_run(message)
+        QMessageBox.warning(self, '自动化已停止', message)
+
     def on_status_changed(self, task_id: object, status: str, error_msg: str):
         task_id = int(task_id)
         self.model.update_task_status(task_id, status, error_msg)
         try:
             response = ApiClient(API_BASE_URL, self.api_username, self.api_password).post_status(task_id, status, error_msg)
             self.model.upsert_task(response)
+            self.update_pager_ui()
             debug_log('回传服务端状态成功', {'taskId': str(task_id), 'status': status, 'error': error_msg, 'response': response})
         except Exception as exc:
             message = friendly_api_error(exc, '状态上报失败，已保存在本地')
@@ -995,6 +1178,7 @@ class MainWindow(QMainWindow):
             try:
                 response = ApiClient(API_BASE_URL, self.api_username, self.api_password).post_status(task_id, final_status, msg)
                 self.model.upsert_task(response)
+                self.update_pager_ui()
                 debug_log('上传失败后回传失败状态成功', {'taskId': str(task_id), 'response': response})
             except Exception as exc:
                 debug_log('上传失败后回传失败状态失败', {'taskId': str(task_id), 'exception': str(exc)})
@@ -1004,6 +1188,7 @@ class MainWindow(QMainWindow):
             try:
                 response = ApiClient(API_BASE_URL, self.api_username, self.api_password).post_status(task_id, 'SUCCESS', '')
                 self.model.upsert_task(response)
+                self.update_pager_ui()
                 debug_log('任务完成状态回传成功', {'taskId': str(task_id), 'response': response})
             except Exception as exc:
                 debug_log('任务完成状态回传失败', {'taskId': str(task_id), 'exception': str(exc)})

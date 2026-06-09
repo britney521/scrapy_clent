@@ -69,7 +69,8 @@ class RegisterSerializer(serializers.Serializer):
     password = serializers.CharField(min_length=6, write_only=True)
 
     def validate_username(self, value):
-        if User.objects.filter(username=value).exists():
+        value = value.strip()
+        if User.objects.filter(username__iexact=value).exists():
             raise serializers.ValidationError('用户名已存在')
         return value
 

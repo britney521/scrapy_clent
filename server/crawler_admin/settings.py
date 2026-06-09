@@ -152,6 +152,7 @@ SIMPLEUI_CONFIG = {
                 {'name': '采集数据', 'icon': 'fa fa-database', 'url': 'tasks/scrapeddata/'},
                 {'name': '任务日志', 'icon': 'fa fa-file-text', 'url': 'tasks/tasklog/'},
                 {'name': '任务领取记录', 'icon': 'fa fa-clock-o', 'url': 'tasks/taskclaimrecord/'},
+                {'name': '供应商已提交数据', 'icon': 'fa fa-cloud-upload', 'url': 'tasks/vendor-records/'},
             ],
         },
     ],

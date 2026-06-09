@@ -15,6 +15,7 @@ from .external_tasks import (
     extract_target_url,
     extract_task_name,
     pull_task_list,
+    push_data,
 )
 from .models import TASK_CLAIM_TIMEOUT_SECONDS, ClientTask, ScrapedData, TaskClaimRecord, TaskLog
 from .serializers import ClientTaskSerializer, LoginSerializer, RegisterSerializer, SubmitDataSerializer, TaskStatusSerializer
@@ -164,7 +165,7 @@ class TaskStatusAPIView(APIView):
         if is_task_expired(task):
             if task.status == ClientTask.STATUS_SUCCESS and new_status == ClientTask.STATUS_SUCCESS:
                 return Response(ClientTaskSerializer(task).data, status=status.HTTP_200_OK)
-            message = mark_task_timeout(task, '任务领取后超过2分钟未完成上传，已标记为超时')
+            message = mark_task_timeout(task, '任务领取后超过2小时未完成上传，已标记为超时')
             return Response({'status': 'fail', 'message': message}, status=status.HTTP_400_BAD_REQUEST)
 
         task.status = new_status
@@ -184,7 +185,7 @@ class TaskDataAPIView(APIView):
     def post(self, request, task_id):
         task = get_task_for_user(task_id, request.user)
         if is_task_expired(task):
-            message = mark_task_timeout(task, '任务领取后超过2分钟未完成上传，已标记为超时')
+            message = mark_task_timeout(task, '任务领取后超过2小时未完成上传，已标记为超时')
             return Response({'status': 'fail', 'message': message}, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = SubmitDataSerializer(data=request.data)
@@ -202,13 +203,40 @@ class TaskDataAPIView(APIView):
             task=task,
             result_data=result_data,
         )
+        push_payload = self._build_external_push_payload(result_data)
+        push_response = None
+        try:
+            push_response = push_data(
+                task_id=str(task.external_task_id or task.id),
+                data=push_payload,
+                success=0,
+            )
+            TaskLog.objects.create(task=task, message=f'外部平台结果回传成功：{push_response}')
+        except Exception as exc:
+            TaskLog.objects.create(task=task, message=f'外部平台结果回传失败：{exc}')
+            return Response(
+                {'status': 'fail', 'message': f'外部平台结果回传失败：{exc}'},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
         task.status = ClientTask.STATUS_SUCCESS
         task.save(update_fields=['status'])
         TaskLog.objects.create(task=task, message=f'商品数据保存成功：ScrapedData #{scraped.id}')
         return Response(
-            {'status': 'success', 'id': scraped.id, 'uploaded_at': scraped.uploaded_at},
+            {'status': 'success', 'id': scraped.id, 'uploaded_at': scraped.uploaded_at, 'push_response': push_response},
             status=status.HTTP_200_OK,
         )
+
+    @staticmethod
+    def _build_external_push_payload(result_data: list[dict]) -> dict:
+        first = result_data[0] if result_data else {}
+        product = first.get('product') if isinstance(first, dict) else {}
+        product = product if isinstance(product, dict) else {}
+        item_id = first.get('itemId') or product.get('item_id') or product.get('itemId') or ''
+        return {
+            'itemId': str(item_id),
+            'status': 'ON_SHELF',
+        }
 
     @staticmethod
     def _validate_product_payload(result_data: list[dict]) -> tuple[bool, str]:
@@ -269,5 +297,5 @@ def reset_expired_tasks(user=None) -> int:
 
     expired_tasks = list(queryset)
     for task in expired_tasks:
-        mark_task_timeout(task, '任务领取后超过2分钟未完成上传，自动标记为超时')
+        mark_task_timeout(task, '任务领取后超过2小时未完成上传，自动标记为超时')
     return len(expired_tasks)

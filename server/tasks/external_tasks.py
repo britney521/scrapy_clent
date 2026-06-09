@@ -78,3 +78,36 @@ def extract_task_name(payload: dict[str, Any], external_task_id: str) -> str:
             if value:
                 return str(value)
     return f'外部任务 {external_task_id}'
+
+
+def push_data(task_id: str, data: Any, success: int = 0) -> dict[str, Any]:
+    if not task_id:
+        raise ValueError('task_id 不能为空')
+    response = requests.post(
+        f'{PULL_TASK_BASE_URL.rstrip("/")}/pushData',
+        params={
+            'siteName': PULL_TASK_SITE_NAME,
+            'token': PULL_TASK_TOKEN,
+        },
+        json={
+            'taskId': str(task_id),
+            'data': data,
+            'success': success,
+        },
+        timeout=PULL_TASK_TIMEOUT,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def query_records() -> dict[str, Any]:
+    response = requests.get(
+        f'{PULL_TASK_BASE_URL.rstrip("/")}/records',
+        params={
+            'siteName': PULL_TASK_SITE_NAME,
+            'token': PULL_TASK_TOKEN,
+        },
+        timeout=PULL_TASK_TIMEOUT,
+    )
+    response.raise_for_status()
+    return response.json()

@@ -132,11 +132,9 @@ class TaobaoProductParser:
             'title': self.extract_title(),
             'price': self.extract_price(),
             'sales': self.extract_sales(),
-            'images': self.extract_images(),
             'shop': self.extract_shop(),
             'sku': self.extract_sku(),
             'specifications': self.extract_specifications(),
-            'parameters': self.extract_parameters(),
             'properties': self.extract_properties(),
             'raw_blocks_found': len(self.json_blocks),
             'fetched_at': int(time.time()),
@@ -210,55 +208,117 @@ class TaobaoProductParser:
 
     def extract_sales(self) -> dict[str, str]:
         result = {}
+        key_map = {
+            'soldCount': 'sold_count',
+            'sellCount': 'sold_count',
+            'sales': 'sales',
+            'monthSellCount': 'month_sales',
+            'monthSoldCount': 'month_sales',
+            'monthSales': 'month_sales',
+            'totalSoldQuantity': 'total_sold',
+            'totalSellCount': 'total_sold',
+            'subTitle': 'subtitle',
+            'sellPoint': 'sell_point',
+        }
         for node in walk_json(self.json_blocks):
             if isinstance(node, dict):
-                for key in ('soldCount', 'sellCount', 'sales', 'monthSellCount', 'totalSoldQuantity'):
+                for key, target in key_map.items():
                     value = node.get(key)
-                    if value not in (None, ''):
-                        result[key] = clean_text(value)
-        if not result:
-            match = re.search(r'月销\s*([0-9.万wW+]+)', self.html_text)
+                    if value not in (None, '') and target not in result:
+                        result[target] = clean_text(value)
+                for key, value in node.items():
+                    if not isinstance(value, (str, int, float)):
+                        continue
+                    key_lower = str(key).lower()
+                    text = clean_text(value)
+                    if not text:
+                        continue
+                    if 'month' in key_lower and ('sell' in key_lower or 'sold' in key_lower) and 'month_sales' not in result:
+                        result['month_sales'] = text
+                    elif ('sell' in key_lower or 'sold' in key_lower) and re.search(r'\d', text) and 'sales' not in result:
+                        result['sales'] = text
+
+        html_text = clean_text(strip_tags(self.html_text))
+        patterns = [
+            ('month_sales', r'(?:月销|月售|月销量|月销售|月卖)\s*([0-9.万wW+]+)'),
+            ('total_sold', r'(?:累计销量|累计售出|已售|已卖|销量)\s*([0-9.万wW+]+)'),
+            ('comment_count', r'(?:评价|评论)\s*([0-9.万wW+]+)'),
+        ]
+        for target, pattern in patterns:
+            if target in result:
+                continue
+            match = re.search(pattern, html_text)
             if match:
-                result['month_sales'] = match.group(1)
-        return result
+                result[target] = match.group(1)
 
-    def extract_images(self) -> list[str]:
-        images: list[str] = []
-        for node in walk_json(self.json_blocks):
-            if isinstance(node, dict):
-                for key in ('image', 'images', 'picUrl', 'pic_url', 'mainPic', 'img', 'url'):
-                    value = node.get(key)
-                    images.extend(self.collect_urls(value))
-            elif isinstance(node, str):
-                images.extend(self.collect_urls(node))
+        return {key: value for key, value in result.items() if value}
 
-        for match in re.finditer(r'(?:https?:)?//[^"\']+\.(?:jpg|jpeg|png|webp)(?:_[^"\']*)?', self.html_text, re.I):
-            images.append(normalize_url(match.group(0)))
-
-        return unique([img for img in images if 'alicdn.com' in img or 'taobao' in img])[:80]
 
     def extract_shop(self) -> dict[str, str]:
         shop = {}
+        key_pairs = (
+            ('shopName', 'name'),
+            ('shopTitle', 'name'),
+            ('storeName', 'name'),
+            ('sellerShopName', 'name'),
+            ('sellerNick', 'seller_nick'),
+            ('sellerName', 'seller_nick'),
+            ('nick', 'seller_nick'),
+            ('sellerId', 'seller_id'),
+            ('userId', 'seller_id'),
+            ('shopId', 'shop_id'),
+            ('storeId', 'shop_id'),
+            ('shopUrl', 'url'),
+            ('storeUrl', 'url'),
+            ('sellerUrl', 'url'),
+            ('shopIcon', 'icon'),
+            ('shopLogo', 'icon'),
+            ('logo', 'icon'),
+        )
         for node in walk_json(self.json_blocks):
             if not isinstance(node, dict):
                 continue
-            for key, target in (
-                ('shopName', 'name'),
-                ('sellerNick', 'seller_nick'),
-                ('sellerId', 'seller_id'),
-                ('shopId', 'shop_id'),
-                ('shopUrl', 'url'),
-                ('shopIcon', 'icon'),
-            ):
+            for key, target in key_pairs:
                 value = node.get(key)
                 if value and target not in shop:
                     shop[target] = normalize_url(str(value)) if target in ('url', 'icon') else clean_text(value)
-        return shop
+            seller = node.get('seller') or node.get('shop') or node.get('store')
+            if isinstance(seller, dict):
+                for key, target in key_pairs:
+                    value = seller.get(key)
+                    if value and target not in shop:
+                        shop[target] = normalize_url(str(value)) if target in ('url', 'icon') else clean_text(value)
+
+        if 'name' not in shop:
+            for pattern in (
+                r'<[^>]+class=["\'][^"\']*(?:shopName|shop-name|shopTitle|sellerName|storeName)[^"\']*["\'][^>]*>(.*?)</[^>]+>',
+                r'店铺\s*[:：]\s*([^\s<]{2,80})',
+                r'掌柜\s*[:：]\s*([^\s<]{2,80})',
+            ):
+                match = re.search(pattern, self.html_text, re.S | re.I)
+                if match:
+                    name = clean_text(strip_tags(match.group(1)))
+                    if name:
+                        shop['name'] = name
+                        break
+
+        if 'url' not in shop:
+            for match in re.finditer(r'(?:https?:)?//[^"\']*(?:shop|store|seller)[^"\']*', self.html_text, re.I):
+                url = normalize_url(match.group(0))
+                if 'taobao' in url or 'tmall' in url:
+                    shop['url'] = url
+                    break
+
+        return {key: value for key, value in shop.items() if value}
 
     def extract_sku(self) -> list[dict[str, Any]]:
         skus = self.extract_sku_from_models()
         if skus:
             return skus[:200]
+
+        dom_skus = self.extract_dom_sku_values()
+        if dom_skus:
+            return dom_skus[:200]
 
         skus: list[dict[str, Any]] = []
         for node in walk_json(self.json_blocks):
@@ -274,6 +334,68 @@ class TaobaoProductParser:
                     'specs': {},
                 })
         return [sku for sku in skus if any(sku.values())][:100]
+
+    def extract_dom_sku_values(self) -> list[dict[str, Any]]:
+        items = self.extract_dom_value_items()
+        result = []
+        for item in items:
+            name = item.get('name') or ''
+            vid = item.get('id') or ''
+            if not name:
+                continue
+            result.append({
+                'sku_id': vid,
+                'name': name,
+                'price': '',
+                'stock': '',
+                'prop_path': vid,
+                'specs': {'规格': name},
+                'image': item.get('image') or '',
+                'disabled': item.get('disabled') or 'false',
+                'corner_text': item.get('corner_text') or '',
+            })
+        return self.unique_dicts(result, ('sku_id', 'name'))
+
+    def extract_dom_value_items(self) -> list[dict[str, str]]:
+        blocks = self.extract_blocks_by_class_prefix('valueItem--')
+        values: list[dict[str, str]] = []
+        for block in blocks:
+            vid = self.extract_attr(block, 'data-vid')
+            disabled = self.extract_attr(block, 'data-disabled')
+            name = ''
+            text_match = re.search(
+                r'<span\b[^>]*class=["\'][^"\']*valueItemText--[^"\']*["\'][^>]*>(.*?)</span>',
+                block,
+                re.S | re.I,
+            )
+            if text_match:
+                title = self.extract_attr(text_match.group(0), 'title')
+                name = title or clean_text(strip_tags(text_match.group(1)))
+            if not name:
+                title_match = re.search(r'\btitle=["\']([^"\']+)["\']', block, re.I)
+                if title_match:
+                    name = clean_text(title_match.group(1))
+            image = ''
+            img_match = re.search(r'<img\b[^>]*\bsrc=["\']([^"\']+)["\']', block, re.I)
+            if img_match:
+                image = normalize_url(img_match.group(1))
+            corner_text = ''
+            corner_match = re.search(
+                r'<span\b[^>]*class=["\'][^"\']*cornerText--[^"\']*["\'][^>]*>(.*?)</span>',
+                block,
+                re.S | re.I,
+            )
+            if corner_match:
+                corner_text = clean_text(strip_tags(corner_match.group(1))) or self.extract_attr(corner_match.group(0), 'title')
+            if name:
+                values.append({
+                    'id': clean_text(vid),
+                    'name': clean_text(name),
+                    'image': image,
+                    'disabled': clean_text(disabled or 'false'),
+                    'corner_text': corner_text,
+                })
+        return self.unique_dicts(values, ('id', 'name'))
 
     def extract_sku_from_models(self) -> list[dict[str, Any]]:
         result: list[dict[str, Any]] = []
@@ -327,6 +449,23 @@ class TaobaoProductParser:
         return specs[:50]
 
     def extract_dom_specifications(self) -> list[dict[str, Any]]:
+        value_items = self.extract_dom_value_items()
+        if value_items:
+            return [{
+                'id': '',
+                'name': '规格',
+                'values': [
+                    {
+                        'id': item.get('id', ''),
+                        'name': item.get('name', ''),
+                        'image': item.get('image', ''),
+                        'disabled': item.get('disabled', 'false'),
+                        'corner_text': item.get('corner_text', ''),
+                    }
+                    for item in value_items
+                ],
+            }]
+
         block = self.extract_block_by_class_prefix('contentWrap--')
         if not block:
             return []
@@ -506,6 +645,30 @@ class TaobaoProductParser:
                 depth += 1
         return self.html_text[start:start + 20000]
 
+    def extract_blocks_by_class_prefix(self, class_prefix: str) -> list[str]:
+        pattern = rf'<(?P<tag>[a-zA-Z0-9]+)\b[^>]*class=["\'][^"\']*{re.escape(class_prefix)}[^"\']*["\'][^>]*>'
+        blocks = []
+        for match in re.finditer(pattern, self.html_text, re.I):
+            tag = match.group('tag').lower()
+            start = match.start()
+            depth = 0
+            tag_pattern = re.compile(rf'</?{re.escape(tag)}\b[^>]*>', re.I)
+            for item in tag_pattern.finditer(self.html_text, start):
+                if item.group(0).startswith('</'):
+                    depth -= 1
+                    if depth == 0:
+                        blocks.append(self.html_text[start:item.end()])
+                        break
+                else:
+                    depth += 1
+            else:
+                blocks.append(self.html_text[start:start + 8000])
+        return blocks
+
+    def extract_attr(self, fragment: str, attr: str) -> str:
+        match = re.search(rf'\b{re.escape(attr)}=["\']([^"\']*)["\']', fragment, re.I)
+        return clean_text(match.group(1)) if match else ''
+
     def extract_visible_lines(self, fragment: str) -> list[str]:
         text = strip_tags(fragment)
         lines = []
@@ -567,6 +730,24 @@ class TaobaoProductParser:
         return max(unique(candidates), key=len)
 
 
+def is_taobao_account_restricted_page(title: str, current_url: str, html_text: str) -> bool:
+    title = title or ''
+    current_url = current_url or ''
+    html_text = html_text or ''
+    text = clean_text(strip_tags(html_text))
+    markers = (
+        '您的账户近期访问行为存在异常',
+        '涉嫌不当获取使用平台商业信息',
+        '系统将限制该账号的部分访问功能',
+        '再次违规将升级处置',
+        'warnning-text',
+        'bx-feedback-btn',
+        'captcha-qrcode',
+        'p-uuid-tips',
+    )
+    return any(marker in html_text or marker in text or marker in current_url or marker in title for marker in markers)
+
+
 def is_login_or_risk_page(title: str, current_url: str, html_text: str) -> bool:
     """只识别明确的登录/风控页，避免正常商品页 HTML 中出现 _lgt_ 造成误判。"""
     title = title or ''
@@ -595,6 +776,19 @@ def fetch_product(page, url: str) -> dict[str, Any]:
     current_url = clean_text(getattr(page, 'url', ''))
     html = getattr(page, 'html', '') or ''
 
+    if is_taobao_account_restricted_page(title, current_url, html):
+        return {
+            'platform': 'taobao',
+            'url': url,
+            'current_url': current_url,
+            'page_title': title,
+            'login_required': False,
+            'risk_blocked': True,
+            'stop_automation': True,
+            'error': '淘宝账号访问行为异常，平台已限制部分访问功能，自动化已停止',
+            'fetched_at': int(time.time()),
+        }
+
     if is_login_or_risk_page(title, current_url, html):
         return {
             'platform': 'taobao',
@@ -602,6 +796,8 @@ def fetch_product(page, url: str) -> dict[str, Any]:
             'current_url': current_url,
             'page_title': title,
             'login_required': True,
+            'risk_blocked': False,
+            'stop_automation': False,
             'error': '需要登录淘宝账号后再获取',
             'fetched_at': int(time.time()),
         }

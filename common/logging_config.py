@@ -50,6 +50,9 @@ def get_logger(app_name: str = 'app'):
 
 
 def log_debug(title: str, payload: Any = None, app_name: str = 'client') -> None:
+    # 服务端不打印 debug 日志；只保留客户端调试日志写入 logs/client.log。
+    if app_name == 'server':
+        return
     logger = get_logger(app_name)
     if payload is None:
         logger.debug(title)
