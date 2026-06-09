@@ -1,5 +1,4 @@
 from datetime import timedelta
-
 from django.contrib.auth import authenticate
 from django.db.models import Q
 from django.db import transaction
@@ -17,7 +16,7 @@ from .external_tasks import (
     extract_task_name,
     pull_task_list,
 )
-from .models import TASK_CLAIM_TIMEOUT_SECONDS, TASK_FETCH_COOLDOWN_SECONDS, ClientTask, ScrapedData, TaskClaimRecord, TaskLog
+from .models import TASK_CLAIM_TIMEOUT_SECONDS, ClientTask, ScrapedData, TaskClaimRecord, TaskLog
 from .serializers import ClientTaskSerializer, LoginSerializer, RegisterSerializer, SubmitDataSerializer, TaskStatusSerializer
 
 
@@ -59,20 +58,6 @@ class TaskListAPIView(APIView):
         limit = self._get_limit(request)
         log_debug('客户端请求领取任务', {'username': request.user.username, 'limit': limit}, app_name='server')
         reset_expired_tasks()
-        allowed, wait_seconds = check_claim_cooldown(request.user)
-        if not allowed:
-            log_debug('领取任务被频率限制', {
-                'username': request.user.username,
-                'waitSeconds': wait_seconds,
-            }, app_name='server')
-            return Response(
-                {
-                    'status': 'fail',
-                    'message': f'领取任务过于频繁，请 {wait_seconds} 秒后再试',
-                    'wait_seconds': wait_seconds,
-                },
-                status=status.HTTP_429_TOO_MANY_REQUESTS,
-            )
         self._ensure_pending_tasks(limit)
         claimed_tasks = []
 
@@ -286,14 +271,3 @@ def reset_expired_tasks(user=None) -> int:
     for task in expired_tasks:
         mark_task_timeout(task, '任务领取后超过2分钟未完成上传，自动标记为超时')
     return len(expired_tasks)
-
-
-def check_claim_cooldown(user) -> tuple[bool, int]:
-    record = TaskClaimRecord.objects.filter(user=user).first()
-    if record is None:
-        return True, 0
-    elapsed = int((timezone.now() - record.last_claimed_at).total_seconds())
-    wait_seconds = TASK_FETCH_COOLDOWN_SECONDS - elapsed
-    if wait_seconds > 0:
-        return False, wait_seconds
-    return True, 0

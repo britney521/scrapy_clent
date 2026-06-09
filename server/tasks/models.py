@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from django.db import models
 
-from common.project_settings import TASK_CLAIM_TIMEOUT_SECONDS, TASK_FETCH_COOLDOWN_SECONDS
+from common.project_settings import TASK_CLAIM_TIMEOUT_SECONDS
 
 
 class ClientTask(models.Model):

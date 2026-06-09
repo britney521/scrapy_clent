@@ -31,7 +31,13 @@ class ApiClient:
 
     def fetch_tasks(self, limit: int = 1) -> list[dict]:
         # 服务端按队列 FIFO 领取任务；默认每次领取 1 个。
-        resp = requests.get(f'{self.base_url}/tasks/', params={'limit': limit}, auth=self.auth, timeout=15)
+        # 外部任务源由服务端拉取，客户端只领取已入库任务并在本机执行商品采集。
+        resp = requests.get(
+            f'{self.base_url}/tasks/',
+            params={'limit': limit},
+            auth=self.auth,
+            timeout=15,
+        )
         resp.raise_for_status()
         return resp.json()
 

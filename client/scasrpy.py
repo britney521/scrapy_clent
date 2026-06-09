@@ -590,6 +590,7 @@ def is_login_or_risk_page(title: str, current_url: str, html_text: str) -> bool:
 def fetch_product(page, url: str) -> dict[str, Any]:
     page.get(url)
     page.wait.doc_loaded()
+    page.wait(1.5)
     title = clean_text(page.title)
     current_url = clean_text(getattr(page, 'url', ''))
     html = getattr(page, 'html', '') or ''

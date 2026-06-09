@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import time
+import random
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -11,8 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 import requests
-from PySide6.QtCore import QAbstractTableModel, QModelIndex, QObject, QRect, QSettings, Qt, QThread, QTimer, Signal
-from PySide6.QtGui import QColor
+from PySide6.QtCore import QAbstractTableModel, QModelIndex, QObject, QSettings, Qt, QThread, QTimer, Signal
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -26,7 +26,6 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
-    QStyledItemDelegate,
     QTabWidget,
     QTableView,
     QToolBar,
@@ -46,7 +45,6 @@ from common.project_settings import (
     QT_SETTINGS_APP,
     QT_SETTINGS_ORG,
     TASK_CLAIM_TIMEOUT_SECONDS,
-    TASK_FETCH_COOLDOWN_SECONDS,
 )
 from scasrpy import fetch_product
 from DrissionPage import Chromium, ChromiumOptions
@@ -120,6 +118,14 @@ def parse_iso_datetime(value: str | None) -> datetime | None:
         parsed = parsed.replace(tzinfo=timezone.utc)
     return parsed
 
+
+
+
+def format_datetime_text(value: str | None) -> str:
+    parsed = parse_iso_datetime(value)
+    if not parsed:
+        return '-'
+    return parsed.astimezone().strftime('%Y-%m-%d %H:%M:%S')
 
 def task_seconds_remaining(row: dict) -> int | None:
     if row.get('status') in ('SUCCESS', 'TIMEOUT'):
@@ -386,7 +392,7 @@ class LoginDialog(QDialog):
 
 
 class TaskTableModel(QAbstractTableModel):
-    headers = ['任务ID', '任务名', '目标URL', '状态', '倒计时', '操作']
+    headers = ['任务ID', '任务名', '目标URL', '状态', '领取时间', '倒计时']
 
     def __init__(self):
         super().__init__()
@@ -471,9 +477,9 @@ class TaskTableModel(QAbstractTableModel):
         if col == 3:
             return self.display_status(row.get('status') or '')
         if col == 4:
-            return task_countdown_text(row)
+            return format_datetime_text(row.get('claimed_at'))
         if col == 5:
-            return self.action_text(row.get('status') or '')
+            return task_countdown_text(row)
         return None
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
@@ -494,61 +500,6 @@ class TaskTableModel(QAbstractTableModel):
             return '进行中'
         return '未完成'
 
-    @staticmethod
-    def action_text(status: str) -> str:
-        if status == 'SUCCESS':
-            return '获取成功'
-        if status == 'TIMEOUT':
-            return '已超时'
-        if status == 'RUNNING':
-            return '重新获取'
-        return '启动任务'
-
-
-class RunButtonDelegate(QStyledItemDelegate):
-    clicked = Signal(QModelIndex)
-
-    def paint(self, painter, option, index):
-        if index.column() != 5:
-            return super().paint(painter, option, index)
-        width = min(104, max(82, option.rect.width() - 18))
-        height = min(30, max(24, option.rect.height() - 10))
-        rect = QRect(
-            option.rect.x() + (option.rect.width() - width) // 2,
-            option.rect.y() + (option.rect.height() - height) // 2,
-            width,
-            height,
-        )
-        status = index.siblingAtColumn(3).data()
-        if status == '完成':
-            bg = QColor('#16a34a')
-            fg = QColor('#ffffff')
-        elif status == '已超时':
-            bg = QColor('#7c2d12')
-            fg = QColor('#ffffff')
-        elif status == '进行中':
-            bg = QColor('#f59e0b')
-            fg = QColor('#111827')
-        else:
-            bg = QColor('#2563eb')
-            fg = QColor('#ffffff')
-        painter.save()
-        painter.setRenderHint(painter.RenderHint.Antialiasing, True)
-        painter.setPen(Qt.NoPen)
-        painter.setBrush(bg)
-        painter.drawRoundedRect(rect, 6, 6)
-        painter.setPen(fg)
-        painter.drawText(rect, Qt.AlignCenter, str(index.data() or '启动任务'))
-        painter.restore()
-
-    def editorEvent(self, event, model, option, index):
-        if event.type() == event.Type.MouseButtonRelease and index.column() == 5:
-            status = index.siblingAtColumn(3).data()
-            if status in ('完成', '已超时'):
-                return True
-            self.clicked.emit(index)
-            return True
-        return super().editorEvent(event, model, option, index)
 
 
 class SpiderWorker(QThread):
@@ -556,10 +507,12 @@ class SpiderWorker(QThread):
     data_fetched = Signal(object, list)
     login_required = Signal(object, str)
 
-    def __init__(self, task_id: int, target_url: str):
+    def __init__(self, task_id: int, target_url: str, min_delay: int = 10, max_delay: int = 15):
         super().__init__()
         self.task_id = task_id
         self.target_url = target_url
+        self.min_delay = max(0, int(min_delay))
+        self.max_delay = max(self.min_delay, int(max_delay))
 
     def run(self):
         debug_log('启动爬虫线程', {
@@ -567,6 +520,8 @@ class SpiderWorker(QThread):
             'targetUrl': self.target_url,
             'browserPath': BROWSER_PATH,
             'userDataPath': BROWSER_USER_DATA_PATH,
+            'minDelay': self.min_delay,
+            'maxDelay': self.max_delay,
         })
         self.status_changed.emit(self.task_id, 'RUNNING', '')
         browser = None
@@ -574,6 +529,11 @@ class SpiderWorker(QThread):
             if ChromiumOptions is None or Chromium is None:
                 raise RuntimeError('DrissionPage 未安装，请先 pip install -r requirements.txt')
             os.makedirs(BROWSER_USER_DATA_PATH, exist_ok=True)
+            wait_seconds = random.randint(self.min_delay, self.max_delay)
+            debug_log('访问目标网站前随机等待', {'taskId': str(self.task_id), 'waitSeconds': wait_seconds})
+            time.sleep(wait_seconds)
+            if self.isInterruptionRequested():
+                raise RuntimeError('任务已停止，访问前中断')
             co = ChromiumOptions().set_browser_path(BROWSER_PATH).set_user_data_path(BROWSER_USER_DATA_PATH)
             # co.headless(True)
             browser = Chromium(co)
@@ -651,11 +611,13 @@ class MainWindow(QMainWindow):
         self.sync_threads: list[QThread] = []
         self.sync_workers: list[SyncWorker] = []
         self.is_fetching_tasks = False
+        self.auto_running = False
+        self.current_task_id: int | None = None
+        self.finished_task_ids: set[int] = set()
         self.settings = QSettings(SETTINGS_ORG, SETTINGS_APP)
         self.api_username = API_USERNAME or self.settings.value('auth/username', '', str)
         self.api_password = API_PASSWORD or self.settings.value('auth/password', '', str)
         self.remember_login = self.settings.value('auth/remember', False, bool)
-        self.fetch_cooldown_until = self.settings.value('task/fetch_cooldown_until', 0, int) or 0
 
         self.model = TaskTableModel()
         self.sync_finished.connect(self.on_sync_finished)
@@ -670,9 +632,6 @@ class MainWindow(QMainWindow):
         header.setStretchLastSection(False)
         header.setMinimumSectionSize(90)
         self.apply_table_column_widths()
-        self.delegate = RunButtonDelegate(self.table)
-        self.delegate.clicked.connect(self.run_task_from_index)
-        self.table.setItemDelegateForColumn(5, self.delegate)
 
         toolbar = QToolBar('工具栏')
         self.login_btn = QPushButton('登录/注册')
@@ -688,15 +647,26 @@ class MainWindow(QMainWindow):
         self.status_filter_box.addItem('未完成', 'INCOMPLETE')
         self.status_filter_box.addItem('完成', 'SUCCESS')
         self.status_filter_box.currentIndexChanged.connect(self.on_status_filter_changed)
-        self.fetch_btn = QPushButton('从队列领取任务')
-        self.fetch_btn.clicked.connect(self.fetch_remote_tasks)
+        self.min_delay_edit = QLineEdit(str(self.settings.value('crawler/min_delay', 10, int) or 10))
+        self.min_delay_edit.setFixedWidth(54)
+        self.max_delay_edit = QLineEdit(str(self.settings.value('crawler/max_delay', 15, int) or 15))
+        self.max_delay_edit.setFixedWidth(54)
+        self.auto_btn = QPushButton('开始执行任务')
+        self.auto_btn.setObjectName('PrimaryButton')
+        self.auto_btn.clicked.connect(self.toggle_auto_run)
         self.login_action = toolbar.addWidget(self.login_btn)
         self.user_action = toolbar.addWidget(self.user_label)
         self.logout_action = toolbar.addWidget(self.logout_btn)
         toolbar.addWidget(self.refresh_btn)
         toolbar.addWidget(QLabel('状态筛选：'))
         toolbar.addWidget(self.status_filter_box)
-        toolbar.addWidget(self.fetch_btn)
+        toolbar.addSeparator()
+        toolbar.addWidget(QLabel('访问间隔：'))
+        toolbar.addWidget(self.min_delay_edit)
+        toolbar.addWidget(QLabel('-'))
+        toolbar.addWidget(self.max_delay_edit)
+        toolbar.addWidget(QLabel('秒'))
+        toolbar.addWidget(self.auto_btn)
         self.addToolBar(toolbar)
 
         root = QWidget()
@@ -708,10 +678,7 @@ class MainWindow(QMainWindow):
         self.countdown_timer = QTimer(self)
         self.countdown_timer.timeout.connect(self.refresh_countdown)
         self.countdown_timer.start(1000)
-        self.fetch_cooldown_timer = QTimer(self)
-        self.fetch_cooldown_timer.timeout.connect(self.update_fetch_button_state)
-        self.fetch_cooldown_timer.start(1000)
-        self.update_fetch_button_state()
+        self.update_auto_button_state()
 
         QTimer.singleShot(100, self.after_window_ready)
 
@@ -730,14 +697,15 @@ class MainWindow(QMainWindow):
             return
         width = max(self.table.viewport().width(), 900)
         task_name_width = int(width * 0.20)
+        claimed_width = 170
         countdown_width = 90
         columns = [
             (0, 190),
             (1, task_name_width),
-            (2, max(320, width - 190 - task_name_width - 110 - countdown_width - 132 - 36)),
+            (2, max(360, width - 190 - task_name_width - 110 - claimed_width - countdown_width - 36)),
             (3, 110),
-            (4, countdown_width),
-            (5, 132),
+            (4, claimed_width),
+            (5, countdown_width),
         ]
         for column, column_width in columns:
             self.table.setColumnWidth(column, column_width)
@@ -750,25 +718,20 @@ class MainWindow(QMainWindow):
     def on_status_filter_changed(self):
         self.model.set_status_filter(self.status_filter_box.currentData())
 
-    def fetch_cooldown_remaining(self) -> int:
-        return max(0, int(self.fetch_cooldown_until - time.time()))
-
-    def start_fetch_cooldown(self, seconds: int = TASK_FETCH_COOLDOWN_SECONDS):
-        self.fetch_cooldown_until = int(time.time()) + max(0, int(seconds))
-        self.settings.setValue('task/fetch_cooldown_until', self.fetch_cooldown_until)
-        self.settings.sync()
-        self.update_fetch_button_state()
-
-    def update_fetch_button_state(self):
-        if not hasattr(self, 'fetch_btn') or self.is_fetching_tasks:
+    def update_auto_button_state(self):
+        if not hasattr(self, 'auto_btn'):
             return
-        remaining = self.fetch_cooldown_remaining()
-        if remaining > 0:
-            self.fetch_btn.setEnabled(False)
-            self.fetch_btn.setText(f'{format_seconds(remaining)} 后可领取')
+        if self.is_fetching_tasks:
+            self.auto_btn.setEnabled(False)
+            self.auto_btn.setText('请求任务中...')
+            return
+        self.auto_btn.setEnabled(bool(self.api_username and self.api_password))
+        if self.auto_running:
+            self.auto_btn.setText('停止执行')
+            self.auto_btn.setStyleSheet('background:#dc2626;color:white;font-weight:600;border-radius:6px;padding:6px 12px;')
         else:
-            self.fetch_btn.setEnabled(True)
-            self.fetch_btn.setText('从队列领取任务')
+            self.auto_btn.setText('开始执行任务')
+            self.auto_btn.setStyleSheet('background:#2563eb;color:white;font-weight:600;border-radius:6px;padding:6px 12px;')
 
     def show_login_dialog(self):
         dialog = LoginDialog(
@@ -820,6 +783,7 @@ class MainWindow(QMainWindow):
         self.user_label.setText(f'当前用户：{self.api_username}' if logged_in else '')
         if logged_in:
             self.setWindowTitle(f'分布式爬虫客户端 - {self.api_username}')
+        self.update_auto_button_state()
 
     def refresh_local(self):
         if not self.ensure_logged_in():
@@ -831,70 +795,102 @@ class MainWindow(QMainWindow):
         except Exception as exc:
             QMessageBox.warning(self, '刷新失败', friendly_api_error(exc, '后台任务刷新失败，请稍后重试'))
 
-    def fetch_remote_tasks(self):
+    def toggle_auto_run(self):
+        if self.auto_running:
+            self.stop_auto_run('已停止自动执行任务')
+            return
         if not self.ensure_logged_in():
+            return
+        self.auto_running = True
+        self.finished_task_ids.clear()
+        debug_log('自动执行任务已启动', {'username': self.api_username, 'apiBaseUrl': API_BASE_URL})
+        self.statusBar().showMessage('自动执行已启动：请求任务 → 爬取 → 上传 → 请求下一任务', 5000)
+        self.update_auto_button_state()
+        QTimer.singleShot(0, self.run_next_task)
+
+    def stop_auto_run(self, message: str = '已停止自动执行任务'):
+        self.auto_running = False
+        self.current_task_id = None
+        for task_id, worker in list(self.workers.items()):
+            if worker.isRunning():
+                worker.requestInterruption()
+        debug_log('自动执行任务已停止', {'username': self.api_username})
+        self.statusBar().showMessage(message, 4000)
+        self.update_auto_button_state()
+
+    def schedule_next_task(self, delay_ms: int = 1000):
+        if not self.auto_running:
+            return
+        QTimer.singleShot(max(0, int(delay_ms)), self.run_next_task)
+
+    def run_next_task(self):
+        if not self.auto_running:
+            return
+        if not self.ensure_logged_in():
+            self.stop_auto_run('未登录，自动执行已停止')
             return
         if self.is_fetching_tasks:
             debug_log('领取任务被忽略：已有领取请求进行中', {'username': self.api_username})
             return
-        remaining = self.fetch_cooldown_remaining()
-        if remaining > 0:
-            debug_log('领取任务被冷却拦截', {'username': self.api_username, 'remainingSeconds': remaining})
-            self.statusBar().showMessage(f'领取任务过于频繁，请 {remaining} 秒后再试', 5000)
-            self.update_fetch_button_state()
-            return
-
         self.is_fetching_tasks = True
-        self.fetch_btn.setEnabled(False)
-        self.fetch_btn.setText('领取中...')
+        self.update_auto_button_state()
         try:
             debug_log('开始从服务端队列领取任务', {'username': self.api_username, 'apiBaseUrl': API_BASE_URL})
-            tasks = ApiClient(API_BASE_URL, self.api_username, self.api_password).fetch_tasks()
+            min_delay, max_delay = self.get_visit_delay_settings()
+            tasks = ApiClient(API_BASE_URL, self.api_username, self.api_password).fetch_tasks(limit=1)
             debug_log('从服务端队列领取任务成功', {'username': self.api_username, 'count': len(tasks), 'tasks': tasks})
             self.model.set_tasks(tasks + self.model.all_rows)
-            if tasks:
-                self.start_fetch_cooldown(TASK_FETCH_COOLDOWN_SECONDS)
-            QMessageBox.information(self, '成功', f'已从队列领取 {len(tasks)} 个任务')
+            if not tasks:
+                self.statusBar().showMessage('当前没有可领取任务，10 秒后自动重试', 5000)
+                self.schedule_next_task(10000)
+                return
+            task = normalize_task(tasks[0])
+            self.current_task_id = int(task['task_id'])
+            debug_log('已领取任务，客户端本地准备执行商品采集', {
+                'taskId': str(self.current_task_id),
+                'minDelay': min_delay,
+                'maxDelay': max_delay,
+            })
+            self.start_task(task, show_running_message=False, min_delay=min_delay, max_delay=max_delay)
         except Exception as exc:
             message = friendly_api_error(exc, '领取任务失败，请稍后重试')
             response = getattr(exc, 'response', None)
             response_text = ''
             if response is not None:
                 response_text = getattr(response, 'text', '') or ''
-            if response is not None and getattr(response, 'status_code', None) == 429:
-                try:
-                    wait_seconds = int((response.json() or {}).get('wait_seconds') or TASK_FETCH_COOLDOWN_SECONDS)
-                except Exception:
-                    wait_seconds = TASK_FETCH_COOLDOWN_SECONDS
-                self.start_fetch_cooldown(wait_seconds)
-                debug_log('服务端限制领取频率，已同步冷却时间', {
-                    'username': self.api_username,
-                    'waitSeconds': wait_seconds,
-                    'responseText': response_text[:2000],
-                })
-            else:
-                debug_log('从服务端队列领取任务失败', {
-                    'username': self.api_username,
-                    'exception': str(exc),
-                    'message': message,
-                    'responseText': response_text[:2000],
-                })
-            QMessageBox.warning(self, '领取失败', message)
+            debug_log('从服务端队列领取任务失败', {
+                'username': self.api_username,
+                'exception': str(exc),
+                'message': message,
+                'responseText': response_text[:2000],
+            })
+            self.statusBar().showMessage(f'请求任务失败：{message}，10 秒后自动重试', 8000)
+            self.schedule_next_task(10000)
         finally:
             self.is_fetching_tasks = False
-            self.update_fetch_button_state()
+            self.update_auto_button_state()
             debug_log('领取任务流程结束', {
                 'username': self.api_username,
-                'cooldownRemaining': self.fetch_cooldown_remaining(),
             })
 
-    def run_task_from_index(self, index: QModelIndex):
-        if not self.ensure_logged_in():
-            return
-        task = self.model.task_at(index.row())
-        self.start_task(task)
+    def get_visit_delay_settings(self) -> tuple[int, int]:
+        def parse(edit: QLineEdit, default: int) -> int:
+            try:
+                return max(0, int(edit.text().strip()))
+            except (TypeError, ValueError):
+                return default
 
-    def start_task(self, task: dict, show_running_message: bool = True) -> bool:
+        min_delay = parse(self.min_delay_edit, 10)
+        max_delay = parse(self.max_delay_edit, 15)
+        if max_delay < min_delay:
+            max_delay = min_delay
+            self.max_delay_edit.setText(str(max_delay))
+        self.settings.setValue('crawler/min_delay', min_delay)
+        self.settings.setValue('crawler/max_delay', max_delay)
+        self.settings.sync()
+        return min_delay, max_delay
+
+    def start_task(self, task: dict, show_running_message: bool = True, min_delay: int | None = None, max_delay: int | None = None) -> bool:
         task_id = int(task['task_id'])
         status = task.get('status') or ''
         if status == 'SUCCESS':
@@ -911,7 +907,9 @@ class MainWindow(QMainWindow):
             self.model.update_task_status(task_id, 'PENDING', '重新获取任务')
         self.statusBar().showMessage(f'任务 {task_id} 已启动，正在爬取...', 3000)
         debug_log('点击启动任务', {'taskId': str(task_id), 'targetUrl': task.get('target_url'), 'status': status})
-        worker = SpiderWorker(task_id, task['target_url'])
+        if min_delay is None or max_delay is None:
+            min_delay, max_delay = self.get_visit_delay_settings()
+        worker = SpiderWorker(task_id, task['target_url'], min_delay=min_delay, max_delay=max_delay)
         worker.status_changed.connect(self.on_status_changed)
         worker.data_fetched.connect(self.on_data_fetched)
         worker.login_required.connect(self.on_login_required)
@@ -940,6 +938,7 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(message, 5000)
         if status == 'FAILED':
             self.statusBar().showMessage(f'任务 {task_id} 失败：{error_msg}', 8000)
+            self.mark_auto_task_finished(task_id, delay_ms=1000)
         self.refresh_local()
 
     def on_data_fetched(self, task_id: object, data: list):
@@ -975,6 +974,7 @@ class MainWindow(QMainWindow):
                 debug_log('上传线程启动失败后状态回传失败', {'taskId': str(task_id), 'exception': str(status_exc)})
             self.statusBar().showMessage(f'任务 {task_id} 上传失败：{message}', 8000)
             self.refresh_local()
+            self.mark_auto_task_finished(task_id, delay_ms=1000)
 
     def build_upload_payload(self, task_id: int, products: list) -> list[dict]:
         payload = []
@@ -1010,6 +1010,22 @@ class MainWindow(QMainWindow):
                 self.statusBar().showMessage(f'任务已完成，但状态上报失败：{friendly_api_error(exc, "状态上报失败")}', 5000)
             self.statusBar().showMessage(f'任务 {task_id} 爬取成功，数据已上传', 3000)
         self.refresh_local()
+        self.mark_auto_task_finished(task_id, delay_ms=1000)
+
+    def mark_auto_task_finished(self, task_id: int, delay_ms: int = 1000):
+        task_id = int(task_id)
+        if task_id in self.finished_task_ids:
+            return
+        self.finished_task_ids.add(task_id)
+        if self.current_task_id == task_id:
+            self.current_task_id = None
+        if self.auto_running:
+            debug_log('自动任务单轮结束，准备请求下一任务', {
+                'username': self.api_username,
+                'taskId': str(task_id),
+                'delayMs': delay_ms,
+            })
+            self.schedule_next_task(delay_ms)
 
     def ensure_logged_in(self) -> bool:
         if self.api_username and self.api_password:
