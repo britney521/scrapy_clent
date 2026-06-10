@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Dict, List, Tuple
 from django.contrib.auth import authenticate
 from django.db.models import Q
 from django.db import transaction
@@ -228,7 +229,7 @@ class TaskDataAPIView(APIView):
         )
 
     @staticmethod
-    def _build_external_push_payload(result_data: list[dict]) -> dict:
+    def _build_external_push_payload(result_data: List[Dict]) -> Dict:
         first = result_data[0] if result_data else {}
         product = first.get('product') if isinstance(first, dict) else {}
         product = product if isinstance(product, dict) else {}
@@ -239,7 +240,7 @@ class TaskDataAPIView(APIView):
         }
 
     @staticmethod
-    def _validate_product_payload(result_data: list[dict]) -> tuple[bool, str]:
+    def _validate_product_payload(result_data: List[Dict]) -> Tuple[bool, str]:
         for index, row in enumerate(result_data):
             product = row.get('product') if isinstance(row, dict) else None
             if not isinstance(product, dict):

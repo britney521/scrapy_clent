@@ -1,6 +1,7 @@
 from importlib.util import find_spec
 import os
 from pathlib import Path
+from typing import List
 
 try:
     from dotenv import load_dotenv
@@ -18,7 +19,7 @@ def env_bool(name: str, default: bool = False) -> bool:
     return str(os.getenv(name, str(default))).lower() in ('1', 'true', 'yes', 'on')
 
 
-def env_list(name: str, default: str = '') -> list[str]:
+def env_list(name: str, default: str = '') -> List[str]:
     value = os.getenv(name, default)
     return [item.strip() for item in value.split(',') if item.strip()]
 
@@ -126,7 +127,8 @@ CSRF_COOKIE_SECURE = env_bool('DJANGO_CSRF_COOKIE_SECURE', False)
 SIMPLEUI_HOME_TITLE = '爬虫任务管理后台'
 SIMPLEUI_HOME_ICON = 'fa fa-home'
 SIMPLEUI_INDEX = '后台首页'
-SIMPLEUI_LOGO = '分布式爬虫后台'
+# SIMPLEUI_LOGO 是图片地址，不是文字；不配置可避免请求 /admin/分布式爬虫后台 404。
+SIMPLEUI_LOGO = ''
 SIMPLEUI_ANALYSIS = False
 SIMPLEUI_DEFAULT_THEME = 'admin.lte.css'
 SIMPLEUI_CONFIG = {

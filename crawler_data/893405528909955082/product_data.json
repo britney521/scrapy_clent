@@ -1,0 +1,490 @@
+[
+  {
+    "username": "britney",
+    "taskId": "893405528909955082",
+    "itemId": "771680521680",
+    "product": {
+      "current_url": "https://detail.tmall.com/item.htm?abbucket=13&id=771680521680&mi_id=0000OMDNJfwd9_QbkxRKjS_GyKTeF6PfrXvgkCOtpIhCHfU&ns=1&skuId=5454392142556&xxc=taobaoSearch",
+      "fetched_at": 1781061604,
+      "item_id": "771680521680",
+      "login_required": false,
+      "missing_fields": [
+        "properties"
+      ],
+      "page_title": "【白色恋T三代】霞湖世家张柏芝同款100支凉感t恤男圆领短袖023-tmall.com天猫",
+      "platform": "taobao",
+      "price": {
+        "currency": "CNY",
+        "values": [
+          "128",
+          "125.44",
+          "2090",
+          "20.9",
+          "1190",
+          "11.9"
+        ]
+      },
+      "properties": {},
+      "raw_blocks_found": 0,
+      "sales": {
+        "total_sold": "5000+"
+      },
+      "shop": {
+        "name": "霞湖世家官方旗舰店",
+        "url": "https://h5api.m.tmall.com/h5/mtop.alibaba.fc.api.maoxland.containerfacade.singleview/1.0/?jsv=2.7.5&appKey=12574478&t=1781061604627&sign=2d6742a6b8f7fcecb9937b9d5120b445&_bx-login=new&api=mtop.alibaba.fc.api.maoxland.ContainerFacade.singleView&v=1.0&isSec=0&ecode=0&timeout=10000&jsonpIncPrefix=pcdetail&type=jsonp&dataType=jsonp&callback=mtopjsonppcdetail1&data=%7B%22projectName%22%3A%22PcTaobao%22%2C%22responseCode%22%3A%22PcTaobaoLiveQuery%22%2C%22params%22%3A%22%7B%5C%22sellerId%5C%22%3A%5C%222215466292434%5C%22%2C%5C%22itemId%5C%22%3A%5C%22771680521680%5C%22%7D%22%7D"
+      },
+      "sku": [
+        {
+          "corner_text": "",
+          "disabled": "false",
+          "image": "https://gw.alicdn.com/bao/uploaded/i4/2215466292434/O1CN01Bcabyy1Tqp3ERazmQ_!!2215466292434.jpg_.webp",
+          "name": "单件-白色",
+          "price": "",
+          "prop_path": "1092276636",
+          "sku_id": "1092276636",
+          "specs": {
+            "规格": "单件-白色"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "千人加购",
+          "disabled": "false",
+          "image": "https://gw.alicdn.com/bao/uploaded/i1/2215466292434/O1CN01ZiRfo21Tqp36wJJOy_!!2215466292434.jpg_.webp",
+          "name": "单件-黑色",
+          "price": "",
+          "prop_path": "676108008",
+          "sku_id": "676108008",
+          "specs": {
+            "规格": "单件-黑色"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "店长主推",
+          "disabled": "false",
+          "image": "https://gw.alicdn.com/bao/uploaded/i3/2215466292434/O1CN01B5zPSI1Tqp3EAj6Rm_!!2215466292434.jpg_.webp",
+          "name": "单件-总裁灰",
+          "price": "",
+          "prop_path": "30879680777",
+          "sku_id": "30879680777",
+          "specs": {
+            "规格": "单件-总裁灰"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "false",
+          "image": "https://gw.alicdn.com/bao/uploaded/i4/2215466292434/O1CN01DuBg6U1Tqp3C8phMr_!!2215466292434.jpg_.webp",
+          "name": "单件-冰爽橙",
+          "price": "",
+          "prop_path": "30879680778",
+          "sku_id": "30879680778",
+          "specs": {
+            "规格": "单件-冰爽橙"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "false",
+          "image": "https://gw.alicdn.com/bao/uploaded/i1/2215466292434/O1CN01M6E7Yr1Tqp3EAlBQY_!!2215466292434.jpg_.webp",
+          "name": "清水蓝",
+          "price": "",
+          "prop_path": "9473431",
+          "sku_id": "9473431",
+          "specs": {
+            "规格": "清水蓝"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "true",
+          "image": "https://gw.alicdn.com/bao/uploaded/i2/2215466292434/O1CN01NNwvcf1Tqp3F9ApUu_!!2215466292434.jpg_.webp",
+          "name": "柔紫色",
+          "price": "",
+          "prop_path": "192670439",
+          "sku_id": "192670439",
+          "specs": {
+            "规格": "柔紫色"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "true",
+          "image": "https://gw.alicdn.com/bao/uploaded/i3/2215466292434/O1CN017UQiQc1Tqp3EZ5Qgg_!!2215466292434.jpg_.webp",
+          "name": "田园绿",
+          "price": "",
+          "prop_path": "20120447",
+          "sku_id": "20120447",
+          "specs": {
+            "规格": "田园绿"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "false",
+          "image": "https://gw.alicdn.com/bao/uploaded/i3/2215466292434/O1CN01EmLUXd1Tqp3PUtv4Q_!!2215466292434.jpg_.webp",
+          "name": "长袖-黑色",
+          "price": "",
+          "prop_path": "413378223",
+          "sku_id": "413378223",
+          "specs": {
+            "规格": "长袖-黑色"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "false",
+          "image": "https://gw.alicdn.com/bao/uploaded/i1/2215466292434/O1CN011coBk01Tqp2EXPF6W_!!2215466292434.jpg_.webp",
+          "name": "长袖-总裁灰",
+          "price": "",
+          "prop_path": "26820485093",
+          "sku_id": "26820485093",
+          "specs": {
+            "规格": "长袖-总裁灰"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "false",
+          "image": "https://gw.alicdn.com/bao/uploaded/i1/2215466292434/O1CN01umAgMx1Tqp6nh3tbd_!!2215466292434.jpg_.webp",
+          "name": "长袖-橙色",
+          "price": "",
+          "prop_path": "803212058",
+          "sku_id": "803212058",
+          "specs": {
+            "规格": "长袖-橙色"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "true",
+          "image": "https://gw.alicdn.com/bao/uploaded/i2/2215466292434/O1CN01Smbz9K1Tqp6ojgYaY_!!2215466292434.jpg_.webp",
+          "name": "长袖-清水蓝",
+          "price": "",
+          "prop_path": "35152304406",
+          "sku_id": "35152304406",
+          "specs": {
+            "规格": "长袖-清水蓝"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "true",
+          "image": "https://gw.alicdn.com/bao/uploaded/i3/2215466292434/O1CN010mCDNL1Tqp3IqjByB_!!2215466292434.jpg_.webp",
+          "name": "长袖-白色",
+          "price": "",
+          "prop_path": "380824699",
+          "sku_id": "380824699",
+          "specs": {
+            "规格": "长袖-白色"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "true",
+          "image": "",
+          "name": "XS （80-100斤）",
+          "price": "",
+          "prop_path": "28313",
+          "sku_id": "28313",
+          "specs": {
+            "规格": "XS （80-100斤）"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "false",
+          "image": "",
+          "name": "S （101-120斤）",
+          "price": "",
+          "prop_path": "28314",
+          "sku_id": "28314",
+          "specs": {
+            "规格": "S （101-120斤）"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "false",
+          "image": "",
+          "name": "M （121-140斤）",
+          "price": "",
+          "prop_path": "28315",
+          "sku_id": "28315",
+          "specs": {
+            "规格": "M （121-140斤）"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "false",
+          "image": "",
+          "name": "L （141-155斤）",
+          "price": "",
+          "prop_path": "28316",
+          "sku_id": "28316",
+          "specs": {
+            "规格": "L （141-155斤）"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "false",
+          "image": "",
+          "name": "XL （156-170斤）",
+          "price": "",
+          "prop_path": "28317",
+          "sku_id": "28317",
+          "specs": {
+            "规格": "XL （156-170斤）"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "false",
+          "image": "",
+          "name": "2XL （171-185斤）",
+          "price": "",
+          "prop_path": "6145171",
+          "sku_id": "6145171",
+          "specs": {
+            "规格": "2XL （171-185斤）"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "false",
+          "image": "",
+          "name": "3XL （186-200斤）",
+          "price": "",
+          "prop_path": "115781",
+          "sku_id": "115781",
+          "specs": {
+            "规格": "3XL （186-200斤）"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "false",
+          "image": "",
+          "name": "4XL （201-215斤）",
+          "price": "",
+          "prop_path": "3727387",
+          "sku_id": "3727387",
+          "specs": {
+            "规格": "4XL （201-215斤）"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "false",
+          "image": "",
+          "name": "5XL （216-230斤）",
+          "price": "",
+          "prop_path": "7539404",
+          "sku_id": "7539404",
+          "specs": {
+            "规格": "5XL （216-230斤）"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "true",
+          "image": "",
+          "name": "6XL （231-245斤）",
+          "price": "",
+          "prop_path": "28128814",
+          "sku_id": "28128814",
+          "specs": {
+            "规格": "6XL （231-245斤）"
+          },
+          "stock": ""
+        }
+      ],
+      "specifications": [
+        {
+          "id": "",
+          "name": "规格",
+          "values": [
+            {
+              "corner_text": "",
+              "disabled": "false",
+              "id": "1092276636",
+              "image": "https://gw.alicdn.com/bao/uploaded/i4/2215466292434/O1CN01Bcabyy1Tqp3ERazmQ_!!2215466292434.jpg_.webp",
+              "name": "单件-白色"
+            },
+            {
+              "corner_text": "千人加购",
+              "disabled": "false",
+              "id": "676108008",
+              "image": "https://gw.alicdn.com/bao/uploaded/i1/2215466292434/O1CN01ZiRfo21Tqp36wJJOy_!!2215466292434.jpg_.webp",
+              "name": "单件-黑色"
+            },
+            {
+              "corner_text": "店长主推",
+              "disabled": "false",
+              "id": "30879680777",
+              "image": "https://gw.alicdn.com/bao/uploaded/i3/2215466292434/O1CN01B5zPSI1Tqp3EAj6Rm_!!2215466292434.jpg_.webp",
+              "name": "单件-总裁灰"
+            },
+            {
+              "corner_text": "",
+              "disabled": "false",
+              "id": "30879680778",
+              "image": "https://gw.alicdn.com/bao/uploaded/i4/2215466292434/O1CN01DuBg6U1Tqp3C8phMr_!!2215466292434.jpg_.webp",
+              "name": "单件-冰爽橙"
+            },
+            {
+              "corner_text": "",
+              "disabled": "false",
+              "id": "9473431",
+              "image": "https://gw.alicdn.com/bao/uploaded/i1/2215466292434/O1CN01M6E7Yr1Tqp3EAlBQY_!!2215466292434.jpg_.webp",
+              "name": "清水蓝"
+            },
+            {
+              "corner_text": "",
+              "disabled": "true",
+              "id": "192670439",
+              "image": "https://gw.alicdn.com/bao/uploaded/i2/2215466292434/O1CN01NNwvcf1Tqp3F9ApUu_!!2215466292434.jpg_.webp",
+              "name": "柔紫色"
+            },
+            {
+              "corner_text": "",
+              "disabled": "true",
+              "id": "20120447",
+              "image": "https://gw.alicdn.com/bao/uploaded/i3/2215466292434/O1CN017UQiQc1Tqp3EZ5Qgg_!!2215466292434.jpg_.webp",
+              "name": "田园绿"
+            },
+            {
+              "corner_text": "",
+              "disabled": "false",
+              "id": "413378223",
+              "image": "https://gw.alicdn.com/bao/uploaded/i3/2215466292434/O1CN01EmLUXd1Tqp3PUtv4Q_!!2215466292434.jpg_.webp",
+              "name": "长袖-黑色"
+            },
+            {
+              "corner_text": "",
+              "disabled": "false",
+              "id": "26820485093",
+              "image": "https://gw.alicdn.com/bao/uploaded/i1/2215466292434/O1CN011coBk01Tqp2EXPF6W_!!2215466292434.jpg_.webp",
+              "name": "长袖-总裁灰"
+            },
+            {
+              "corner_text": "",
+              "disabled": "false",
+              "id": "803212058",
+              "image": "https://gw.alicdn.com/bao/uploaded/i1/2215466292434/O1CN01umAgMx1Tqp6nh3tbd_!!2215466292434.jpg_.webp",
+              "name": "长袖-橙色"
+            },
+            {
+              "corner_text": "",
+              "disabled": "true",
+              "id": "35152304406",
+              "image": "https://gw.alicdn.com/bao/uploaded/i2/2215466292434/O1CN01Smbz9K1Tqp6ojgYaY_!!2215466292434.jpg_.webp",
+              "name": "长袖-清水蓝"
+            },
+            {
+              "corner_text": "",
+              "disabled": "true",
+              "id": "380824699",
+              "image": "https://gw.alicdn.com/bao/uploaded/i3/2215466292434/O1CN010mCDNL1Tqp3IqjByB_!!2215466292434.jpg_.webp",
+              "name": "长袖-白色"
+            },
+            {
+              "corner_text": "",
+              "disabled": "true",
+              "id": "28313",
+              "image": "",
+              "name": "XS （80-100斤）"
+            },
+            {
+              "corner_text": "",
+              "disabled": "false",
+              "id": "28314",
+              "image": "",
+              "name": "S （101-120斤）"
+            },
+            {
+              "corner_text": "",
+              "disabled": "false",
+              "id": "28315",
+              "image": "",
+              "name": "M （121-140斤）"
+            },
+            {
+              "corner_text": "",
+              "disabled": "false",
+              "id": "28316",
+              "image": "",
+              "name": "L （141-155斤）"
+            },
+            {
+              "corner_text": "",
+              "disabled": "false",
+              "id": "28317",
+              "image": "",
+              "name": "XL （156-170斤）"
+            },
+            {
+              "corner_text": "",
+              "disabled": "false",
+              "id": "6145171",
+              "image": "",
+              "name": "2XL （171-185斤）"
+            },
+            {
+              "corner_text": "",
+              "disabled": "false",
+              "id": "115781",
+              "image": "",
+              "name": "3XL （186-200斤）"
+            },
+            {
+              "corner_text": "",
+              "disabled": "false",
+              "id": "3727387",
+              "image": "",
+              "name": "4XL （201-215斤）"
+            },
+            {
+              "corner_text": "",
+              "disabled": "false",
+              "id": "7539404",
+              "image": "",
+              "name": "5XL （216-230斤）"
+            },
+            {
+              "corner_text": "",
+              "disabled": "true",
+              "id": "28128814",
+              "image": "",
+              "name": "6XL （231-245斤）"
+            }
+          ]
+        }
+      ],
+      "title": "【白色恋T三代】霞湖世家张柏芝同款100支凉感t恤男圆领短袖023-tmall.com天猫",
+      "url": "http://detail.tmall.com/item.htm?id=771680521680&ns=1&abbucket=13&xxc=taobaoSearch&mi_id=0000OMDNJfwd9_QbkxRKjS_GyKTeF6PfrXvgkCOtpIhCHfU&skuId=5454392142553"
+    }
+  }
+]

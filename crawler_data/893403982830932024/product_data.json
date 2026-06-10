@@ -1,0 +1,99 @@
+[
+  {
+    "username": "britney",
+    "taskId": "893403982830932024",
+    "itemId": "627903565262",
+    "product": {
+      "current_url": "https://item.taobao.com/item.htm?abbucket=8&id=627903565262&mi_id=0000G5UfhSAUsUZPZftxGBWRHWT1o5nnAyrtXBfIXIx1fX4&ns=1&skuId=4938118992780&xxc=taobaoSearch",
+      "fetched_at": 1781061307,
+      "item_id": "627903565262",
+      "login_required": false,
+      "missing_fields": [],
+      "page_title": "3件包邮资生堂新版悦薇智感紧塑焕白霜15ml抗糖面霜小样滋润/清爽-淘宝网",
+      "platform": "taobao",
+      "price": {
+        "currency": "CNY",
+        "values": [
+          "29.9",
+          "19.9"
+        ]
+      },
+      "properties": {
+        "2020年": "规格类型",
+        "Shiseido/资生堂": "资生堂单品",
+        "保质期": "品牌",
+        "功效": "抗皱,紧致,修护",
+        "参数信息": "抗皱,修护,紧致",
+        "国妆特进字J20200119": "适合肤质",
+        "基础包装": "乳液/面霜品类",
+        "小样": "是否为特殊用途化妆品",
+        "悦薇智感紧塑焕白霜": "产地",
+        "所有肤质,中性肤质": "上市时间",
+        "日本": "包装种类",
+        "是": "产品名称",
+        "核心功效": "5年",
+        "面霜": "化妆品备案编号/注册证号"
+      },
+      "raw_blocks_found": 0,
+      "sales": {
+        "total_sold": "700+"
+      },
+      "shop": {
+        "name": "晨诚良品",
+        "url": "https://ishop.taobao.com/openshop/tb_open_shop_landing.htm?source=tbweb1st"
+      },
+      "sku": [
+        {
+          "corner_text": "店长主推",
+          "disabled": "false",
+          "image": "https://gw.alicdn.com/bao/uploaded/i1/53380245/O1CN01YWIPzL1DgFrwNU6zi_!!53380245.png_.webp",
+          "name": "所有肤质 滋润型（5年26.12）",
+          "price": "",
+          "prop_path": "15883775",
+          "sku_id": "15883775",
+          "specs": {
+            "规格": "所有肤质 滋润型（5年26.12）"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "false",
+          "image": "https://gw.alicdn.com/bao/uploaded/i3/53380245/O1CN01YHKNP91DgFrz9q6kn_!!53380245.png_.webp",
+          "name": "中性肤质 清爽型（5年26.12）",
+          "price": "",
+          "prop_path": "7093285",
+          "sku_id": "7093285",
+          "specs": {
+            "规格": "中性肤质 清爽型（5年26.12）"
+          },
+          "stock": ""
+        }
+      ],
+      "specifications": [
+        {
+          "id": "",
+          "name": "规格",
+          "values": [
+            {
+              "corner_text": "店长主推",
+              "disabled": "false",
+              "id": "15883775",
+              "image": "https://gw.alicdn.com/bao/uploaded/i1/53380245/O1CN01YWIPzL1DgFrwNU6zi_!!53380245.png_.webp",
+              "name": "所有肤质 滋润型（5年26.12）"
+            },
+            {
+              "corner_text": "",
+              "disabled": "false",
+              "id": "7093285",
+              "image": "https://gw.alicdn.com/bao/uploaded/i3/53380245/O1CN01YHKNP91DgFrz9q6kn_!!53380245.png_.webp",
+              "name": "中性肤质 清爽型（5年26.12）"
+            }
+          ]
+        }
+      ],
+      "title": "3件包邮资生堂新版悦薇智感紧塑焕白霜15ml抗糖面霜小样滋润/清爽",
+      "url": "http://item.taobao.com/item.htm?id=627903565262&ns=1&abbucket=8&xxc=taobaoSearch&mi_id=0000G5UfhSAUsUZPZftxGBWRHWT1o5nnAyrtXBfIXIx1fX4&skuId=4938118992780"
+    }
+  }
+]

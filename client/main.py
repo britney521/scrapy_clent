@@ -4,6 +4,7 @@ import json
 import time
 import random
 import threading
+import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -14,6 +15,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 import requests
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, QObject, QSettings, Qt, QThread, QTimer, Signal
+from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -29,6 +31,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QTabWidget,
     QTableView,
+    QTextEdit,
     QToolBar,
     QVBoxLayout,
     QWidget,
@@ -43,6 +46,7 @@ from common.project_settings import (
     CRAWLER_BROWSER_PATH,
     CRAWLER_BROWSER_USER_DATA,
     CRAWLER_DATA_DIR,
+    LOG_DIR,
     QT_SETTINGS_APP,
     QT_SETTINGS_ORG,
     TASK_CLAIM_TIMEOUT_SECONDS,
@@ -57,12 +61,14 @@ API_PASSWORD = CRAWLER_API_PASSWORD
 BROWSER_PATH = CRAWLER_BROWSER_PATH
 BROWSER_USER_DATA_PATH = CRAWLER_BROWSER_USER_DATA
 DATA_DIR = Path(CRAWLER_DATA_DIR)
+LOG_PATH = Path(LOG_DIR)
 SETTINGS_ORG = QT_SETTINGS_ORG
 SETTINGS_APP = QT_SETTINGS_APP
 
 
 _BROWSER = None
 _BROWSER_LOCK = threading.Lock()
+_UI_LOG_SINKS = []
 
 
 def get_shared_browser():
@@ -97,6 +103,67 @@ def close_page_only(browser, page) -> None:
 
 def debug_log(title: str, payload: Any = None) -> None:
     log_debug(title, payload, app_name='client')
+    timestamp = datetime.now().strftime('%H:%M:%S')
+    text = f'[{timestamp}] {_format_ui_log_line(title, payload)}'
+    for sink in list(_UI_LOG_SINKS):
+        try:
+            sink(text)
+        except RuntimeError:
+            try:
+                _UI_LOG_SINKS.remove(sink)
+            except ValueError:
+                pass
+        except Exception:
+            pass
+
+
+def _format_ui_log_line(title: str, payload: Any = None) -> str:
+    """界面日志只显示流程摘要；完整 JSON 仍写入 client.log。"""
+    if not isinstance(payload, dict):
+        return title
+
+    parts = [title]
+    task_id = payload.get('taskId') or payload.get('task_id')
+    if task_id:
+        parts.append(f'任务ID：{task_id}')
+
+    status = payload.get('status')
+    if status:
+        parts.append(f'状态：{status}')
+
+    count = payload.get('count')
+    if count is not None:
+        parts.append(f'数量：{count}')
+
+    wait_seconds = payload.get('waitSeconds')
+    if wait_seconds is not None:
+        parts.append(f'等待：{wait_seconds}秒')
+
+    delay_ms = payload.get('delayMs')
+    if delay_ms is not None:
+        try:
+            parts.append(f'下次间隔：{int(delay_ms) / 1000:.1f}秒')
+        except Exception:
+            pass
+
+    error = payload.get('error') or payload.get('exception') or payload.get('message')
+    if error:
+        error_text = str(error).replace('\n', ' ')
+        if len(error_text) > 120:
+            error_text = error_text[:120] + '...'
+        parts.append(f'提示：{error_text}')
+
+    return ' ｜ '.join(parts)
+
+
+def install_global_exception_hook() -> None:
+    def handle_exception(exc_type, exc_value, exc_traceback):
+        debug_log('客户端未捕获异常', {
+            'exception': ''.join(traceback.format_exception(exc_type, exc_value, exc_traceback)),
+        })
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+
+    sys.excepthook = handle_exception
 
 
 def friendly_api_error(exc: Exception, fallback: str) -> str:
@@ -684,6 +751,7 @@ class SyncWorker(QObject):
 
 class MainWindow(QMainWindow):
     sync_finished = Signal(object, bool, str)
+    ui_log_received = Signal(str)
 
     def __init__(self):
         super().__init__()
@@ -783,7 +851,18 @@ class MainWindow(QMainWindow):
         pager_layout.addWidget(self.next_page_btn)
         pager_layout.addWidget(self.last_page_btn)
         layout.addWidget(pager)
+        layout.addWidget(QLabel('运行日志：'))
+        self.log_output = QTextEdit()
+        self.log_output.setReadOnly(True)
+        self.log_output.setFixedHeight(180)
+        self.log_output.setLineWrapMode(QTextEdit.NoWrap)
+        self.log_output.setStyleSheet(
+            'QTextEdit { background:#111827; color:#d1d5db; font-family: Menlo, Consolas, monospace; font-size: 12px; }'
+        )
+        layout.addWidget(self.log_output)
         self.setCentralWidget(root)
+        self.ui_log_received.connect(self.append_ui_log)
+        _UI_LOG_SINKS.append(self.ui_log_received.emit)
         self.update_auth_ui()
         self.countdown_timer = QTimer(self)
         self.countdown_timer.timeout.connect(self.refresh_countdown)
@@ -797,10 +876,26 @@ class MainWindow(QMainWindow):
         self.apply_table_column_widths()
 
     def after_window_ready(self):
+        self.statusBar().showMessage(f'日志目录：{LOG_PATH}', 8000)
         if not self.api_username or not self.api_password:
             self.show_login_dialog()
             return
         self.refresh_local()
+
+    def append_ui_log(self, text: str):
+        if not hasattr(self, 'log_output'):
+            return
+        self.log_output.append(text)
+        document = self.log_output.document()
+        max_blocks = 500
+        if document.blockCount() > max_blocks:
+            cursor = self.log_output.textCursor()
+            cursor.movePosition(QTextCursor.Start)
+            for _ in range(document.blockCount() - max_blocks):
+                cursor.select(QTextCursor.BlockUnderCursor)
+                cursor.removeSelectedText()
+                cursor.deleteChar()
+        self.log_output.moveCursor(QTextCursor.End)
 
     def apply_table_column_widths(self):
         if not hasattr(self, 'table'):
@@ -946,6 +1041,13 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, '刷新失败', friendly_api_error(exc, '后台任务刷新失败，请稍后重试'))
 
     def toggle_auto_run(self):
+        debug_log('点击开始/停止执行任务按钮', {
+            'autoRunning': self.auto_running,
+            'username': self.api_username,
+            'apiBaseUrl': API_BASE_URL,
+            'browserPath': BROWSER_PATH,
+            'dataDir': str(DATA_DIR),
+        })
         if self.auto_running:
             self.stop_auto_run('已停止自动执行任务')
             return
@@ -1220,6 +1322,12 @@ class MainWindow(QMainWindow):
 
 
 if __name__ == '__main__':
+    install_global_exception_hook()
+    debug_log('客户端启动', {
+        'apiBaseUrl': API_BASE_URL,
+        'browserPath': BROWSER_PATH,
+        'dataDir': str(DATA_DIR),
+    })
     app = QApplication(sys.argv)
     win = MainWindow()
     win.show()

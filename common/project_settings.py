@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 import platform
+import sys
 from pathlib import Path
 
 
@@ -37,8 +38,17 @@ CRAWLER_BROWSER_USER_DATA = os.getenv(
     'CRAWLER_BROWSER_USER_DATA',
     os.path.expanduser('~/.crawler_taobao_browser_profile'),
 )
-CRAWLER_DATA_DIR = os.getenv('CRAWLER_DATA_DIR', str(PROJECT_ROOT / 'crawler_data'))
-LOG_DIR = os.getenv('CRAWLER_LOG_DIR', str(PROJECT_ROOT / 'logs'))
+def default_runtime_dir(name: str) -> str:
+    if getattr(sys, 'frozen', False):
+        if platform.system() == 'Windows':
+            base = os.getenv('LOCALAPPDATA') or os.path.expanduser('~')
+            return str(Path(base) / 'CrawlerClient' / name)
+        return str(Path.home() / '.crawler_client' / name)
+    return str(PROJECT_ROOT / name)
+
+
+CRAWLER_DATA_DIR = os.getenv('CRAWLER_DATA_DIR', default_runtime_dir('crawler_data'))
+LOG_DIR = os.getenv('CRAWLER_LOG_DIR', default_runtime_dir('logs'))
 LOG_LEVEL = os.getenv('CRAWLER_LOG_LEVEL', 'DEBUG')
 
 # Qt 本地设置命名空间

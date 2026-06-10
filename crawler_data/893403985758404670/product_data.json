@@ -1,0 +1,113 @@
+[
+  {
+    "username": "britney",
+    "taskId": "893403985758404670",
+    "itemId": "990515619569",
+    "product": {
+      "current_url": "https://chaoshi.detail.tmall.com/item.htm?abbucket=14&id=990515619569&mi_id=0000AwxLsSbU0LolJAL4j42UxEj12AzAoX3MjMCiv_bTpfs&ns=1&skuId=6128809983741&xxc=taobaoSearch",
+      "fetched_at": 1781060463,
+      "item_id": "990515619569",
+      "login_required": false,
+      "missing_fields": [],
+      "page_title": "C咖酸酶滑滑水控油爽肤水清透水精华水提亮油皮去闭口湿敷水酸梅-tmall.com天猫",
+      "platform": "taobao",
+      "price": {
+        "currency": "CNY",
+        "values": [
+          "119.9",
+          "98.71"
+        ]
+      },
+      "properties": {
+        "2025年": "厂家地址",
+        "C咖毛孔清透精华水": "品牌",
+        "C咖酸酶滑滑水": "合规证号",
+        "c咖": "包装种类",
+        "中国": "是否为特殊用途化妆品",
+        "使用场景": "适用季节",
+        "功效": "混合性肤质,油性肤质",
+        "化妆品保质期": "36个月",
+        "参数信息": "出油多",
+        "否": "规格类型",
+        "四季适用": "化妆品品类",
+        "基础包装": "化妆品备案编号/注册证号",
+        "广东科盈科技有限公司": "上市时间",
+        "广州市海珠区广州大道南1601-1603号之二十四自编第一层101、102、103、104房间": "标准号",
+        "微量成分": "日常护肤",
+        "核心功效": "水液",
+        "款式": "基本款",
+        "正常规格": "品名",
+        "清远市清新区太平镇马岳工业区田心路12-8号": "产品名称",
+        "爽肤水 化妆水 柔肤水 紧致水 活肤水": "产地",
+        "粤G妆网备字2025049783": "责任人地址",
+        "粤妆20180123": "企业地址",
+        "系列": "提亮肤色,保湿,控油,去黑头",
+        "肤质问题": "精华水",
+        "责任人名称": "广州推圈科技有限公司",
+        "责任企业": "生产厂家",
+        "质地": "琥珀酸、PCA锌、菠萝蛋白酶、木瓜蛋白酶、欧洲水青冈芽提取物、龙胆根提取物、红木籽提取物",
+        "适用人群": "成人（孕产妇及哺乳期除外）",
+        "适用肤质": "提亮,控油,保湿"
+      },
+      "raw_blocks_found": 0,
+      "sales": {
+        "total_sold": "1000+"
+      },
+      "shop": {
+        "url": "https://ishop.taobao.com/openshop/tb_open_shop_landing.htm?source=tbweb1st"
+      },
+      "sku": [
+        {
+          "corner_text": "店长主推",
+          "disabled": "false",
+          "image": "",
+          "name": "125ml 含精华水90ml+35ml+湿敷巾+喷头",
+          "price": "",
+          "prop_path": "75372088",
+          "sku_id": "75372088",
+          "specs": {
+            "规格": "125ml 含精华水90ml+35ml+湿敷巾+喷头"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "false",
+          "image": "",
+          "name": "35ml ★控油平闭口丨平滑细毛孔★",
+          "price": "",
+          "prop_path": "46306",
+          "sku_id": "46306",
+          "specs": {
+            "规格": "35ml ★控油平闭口丨平滑细毛孔★"
+          },
+          "stock": ""
+        }
+      ],
+      "specifications": [
+        {
+          "id": "",
+          "name": "规格",
+          "values": [
+            {
+              "corner_text": "店长主推",
+              "disabled": "false",
+              "id": "75372088",
+              "image": "",
+              "name": "125ml 含精华水90ml+35ml+湿敷巾+喷头"
+            },
+            {
+              "corner_text": "",
+              "disabled": "false",
+              "id": "46306",
+              "image": "",
+              "name": "35ml ★控油平闭口丨平滑细毛孔★"
+            }
+          ]
+        }
+      ],
+      "title": "C咖酸酶滑滑水控油爽肤水清透水精华水提亮油皮去闭口湿敷水酸梅-tmall.com天猫",
+      "url": "http://detail.tmall.com/item.htm?id=990515619569&ns=1&abbucket=14&xxc=taobaoSearch&mi_id=0000AwxLsSbU0LolJAL4j42UxEj12AzAoX3MjMCiv_bTpfs&skuId=6128809983741"
+    }
+  }
+]

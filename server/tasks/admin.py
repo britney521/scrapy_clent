@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
-
+from typing import Optional
 from django.conf import settings
 from django.core.paginator import Paginator
 from django.contrib import admin
@@ -137,7 +137,7 @@ def _extract_record_stats(payload):
     data = _payload_data(payload)
     team = data.get('team') if isinstance(data, dict) and isinstance(data.get('team'), dict) else {}
 
-    def pick(name: str, fallback: str | None = None):
+    def pick(name: str, fallback: Optional[str] = None):
         if isinstance(team, dict) and name in team:
             return team.get(name) or 0
         if isinstance(data, dict) and name in data:

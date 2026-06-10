@@ -1,0 +1,139 @@
+[
+  {
+    "username": "britney",
+    "taskId": "893403983208255539",
+    "itemId": "673112971203",
+    "product": {
+      "current_url": "https://item.taobao.com/item.htm?id=673112971203&sid=2932035944ebac2202917ec08ee04c3d&ttid=1568860058617%40taobao_android_10.59.20&utd_id=aVnhUV7UO%2FQDAG0r6kt%2FW3N3&v=1.0&sku_properties=147956252%3A75367397",
+      "fetched_at": 1781061283,
+      "item_id": "673112971203",
+      "login_required": false,
+      "missing_fields": [],
+      "page_title": "资生堂悦薇智感紧塑焕白霜面霜 紧致15ml*3=45ml 抗糖霜胶原炮-淘宝网",
+      "platform": "taobao",
+      "price": {
+        "currency": "CNY",
+        "values": [
+          "128"
+        ]
+      },
+      "properties": {
+        "15ml": "适合肤质",
+        "2020年": "产品名称",
+        "Shiseido/资生堂": "资生堂单品",
+        "功效": "紧致,滋养,保湿",
+        "参数信息": "悦薇",
+        "国妆特进字20230444": "品牌",
+        "基础包装": "是否为特殊用途化妆品",
+        "干性/特干性,普通肤质,所有肤质": "商品品类",
+        "悦薇智感紧塑焕白霜": "上市时间",
+        "日本": "规格类型",
+        "核心功效": "化妆品备案编号/注册证号",
+        "系列": "抗皱,修护,紧致",
+        "试用装": "包装种类",
+        "资生堂悦薇智感紧弹亮乳霜": "净含量",
+        "面霜": "产地"
+      },
+      "raw_blocks_found": 0,
+      "sales": {
+        "total_sold": "300+"
+      },
+      "shop": {
+        "name": "月月国内专柜代购",
+        "url": "https://ishop.taobao.com/openshop/tb_open_shop_landing.htm?source=tbweb1st"
+      },
+      "sku": [
+        {
+          "corner_text": "",
+          "disabled": "false",
+          "image": "",
+          "name": "15ml",
+          "price": "",
+          "prop_path": "75367397",
+          "sku_id": "75367397",
+          "specs": {
+            "规格": "15ml"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "false",
+          "image": "https://gw.alicdn.com/bao/uploaded/i3/159114341/O1CN0106aykl1hwEH67GRg0_!!159114341.jpg_.webp",
+          "name": "普通肤质 旧版清爽型抗糖霜27年到期",
+          "price": "",
+          "prop_path": "6163806",
+          "sku_id": "6163806",
+          "specs": {
+            "规格": "普通肤质 旧版清爽型抗糖霜27年到期"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "false",
+          "image": "https://gw.alicdn.com/bao/uploaded/i4/159114341/O1CN01qzDiDC1hwEM6Z9KFM_!!159114341.jpg_.webp",
+          "name": "所有肤质 新版胶原炮面霜",
+          "price": "",
+          "prop_path": "15883775",
+          "sku_id": "15883775",
+          "specs": {
+            "规格": "所有肤质 新版胶原炮面霜"
+          },
+          "stock": ""
+        },
+        {
+          "corner_text": "",
+          "disabled": "false",
+          "image": "https://gw.alicdn.com/bao/uploaded/i4/159114341/O1CN01jokLIQ1hwEQM5fG93_!!159114341.heic_.webp",
+          "name": "干性/特干性 新版胶原炮PRO(丰润型)",
+          "price": "",
+          "prop_path": "40163454032",
+          "sku_id": "40163454032",
+          "specs": {
+            "规格": "干性/特干性 新版胶原炮PRO(丰润型)"
+          },
+          "stock": ""
+        }
+      ],
+      "specifications": [
+        {
+          "id": "",
+          "name": "规格",
+          "values": [
+            {
+              "corner_text": "",
+              "disabled": "false",
+              "id": "75367397",
+              "image": "",
+              "name": "15ml"
+            },
+            {
+              "corner_text": "",
+              "disabled": "false",
+              "id": "6163806",
+              "image": "https://gw.alicdn.com/bao/uploaded/i3/159114341/O1CN0106aykl1hwEH67GRg0_!!159114341.jpg_.webp",
+              "name": "普通肤质 旧版清爽型抗糖霜27年到期"
+            },
+            {
+              "corner_text": "",
+              "disabled": "false",
+              "id": "15883775",
+              "image": "https://gw.alicdn.com/bao/uploaded/i4/159114341/O1CN01qzDiDC1hwEM6Z9KFM_!!159114341.jpg_.webp",
+              "name": "所有肤质 新版胶原炮面霜"
+            },
+            {
+              "corner_text": "",
+              "disabled": "false",
+              "id": "40163454032",
+              "image": "https://gw.alicdn.com/bao/uploaded/i4/159114341/O1CN01jokLIQ1hwEQM5fG93_!!159114341.heic_.webp",
+              "name": "干性/特干性 新版胶原炮PRO(丰润型)"
+            }
+          ]
+        }
+      ],
+      "title": "资生堂悦薇智感紧塑焕白霜面霜 紧致15ml*3=45ml 抗糖霜胶原炮",
+      "url": "http://a.m.taobao.com/i673112971203.htm?&utd_id=aVnhUV7UO%2FQDAG0r6kt%2FW3N3&ttid=1568860058617%40taobao_android_10.59.20&v=1.0&sid=2932035944ebac2202917ec08ee04c3d"
+    }
+  }
+]

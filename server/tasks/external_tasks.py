@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Dict, List
 from urllib.parse import urlencode
 
 import requests
@@ -6,7 +6,7 @@ import requests
 from common.project_settings import PULL_TASK_BASE_URL, PULL_TASK_SITE_NAME, PULL_TASK_TIMEOUT, PULL_TASK_TOKEN
 
 
-def pull_task(count: int = 1) -> dict[str, Any]:
+def pull_task(count: int = 1) -> Dict[str, Any]:
     response = requests.get(
         f'{PULL_TASK_BASE_URL.rstrip("/")}/pullTask',
         params={'siteName': PULL_TASK_SITE_NAME, 'token': PULL_TASK_TOKEN, 'count': count},
@@ -16,7 +16,7 @@ def pull_task(count: int = 1) -> dict[str, Any]:
     return response.json()
 
 
-def pull_task_list(count: int = 1) -> list[dict[str, Any]]:
+def pull_task_list(count: int = 1) -> List[Dict[str, Any]]:
     payload = pull_task(count=count)
     data_list = payload.get('dataList')
     if isinstance(data_list, list):
@@ -34,7 +34,7 @@ def pull_task_list(count: int = 1) -> list[dict[str, Any]]:
     return []
 
 
-def extract_external_task_id(payload: dict[str, Any]) -> str:
+def extract_external_task_id(payload: Dict[str, Any]) -> str:
     for key in ('taskId', 'task_id', 'id', 'taskID', 'tid'):
         value = payload.get(key)
         if value not in (None, ''):
@@ -42,7 +42,7 @@ def extract_external_task_id(payload: dict[str, Any]) -> str:
     raise ValueError(f'外部任务缺少任务ID字段: {payload}')
 
 
-def extract_target_url(payload: dict[str, Any]) -> str:
+def extract_target_url(payload: Dict[str, Any]) -> str:
     for item in _iter_payload_dicts(payload):
         for key in ('url', 'targetUrl', 'target_url', 'link', 'href'):
             value = item.get(key)
@@ -56,7 +56,7 @@ def extract_target_url(payload: dict[str, Any]) -> str:
     raise ValueError(f'外部任务缺少 URL 字段: {payload}')
 
 
-def has_target_url(payload: dict[str, Any]) -> bool:
+def has_target_url(payload: Dict[str, Any]) -> bool:
     try:
         extract_target_url(payload)
     except ValueError:
@@ -64,14 +64,14 @@ def has_target_url(payload: dict[str, Any]) -> bool:
     return True
 
 
-def _iter_payload_dicts(payload: dict[str, Any]):
+def _iter_payload_dicts(payload: Dict[str, Any]):
     yield payload
     content = payload.get('content')
     if isinstance(content, dict):
         yield content
 
 
-def extract_task_name(payload: dict[str, Any], external_task_id: str) -> str:
+def extract_task_name(payload: Dict[str, Any], external_task_id: str) -> str:
     for item in _iter_payload_dicts(payload):
         for key in ('taskName', 'task_name', 'name', 'title', 'itemName', 'keyWord', 'keyword'):
             value = item.get(key)
@@ -80,7 +80,7 @@ def extract_task_name(payload: dict[str, Any], external_task_id: str) -> str:
     return f'外部任务 {external_task_id}'
 
 
-def push_data(task_id: str, data: Any, success: int = 0) -> dict[str, Any]:
+def push_data(task_id: str, data: Any, success: int = 0) -> Dict[str, Any]:
     if not task_id:
         raise ValueError('task_id 不能为空')
     response = requests.post(
@@ -100,7 +100,7 @@ def push_data(task_id: str, data: Any, success: int = 0) -> dict[str, Any]:
     return response.json()
 
 
-def query_records() -> dict[str, Any]:
+def query_records() -> Dict[str, Any]:
     response = requests.get(
         f'{PULL_TASK_BASE_URL.rstrip("/")}/records',
         params={

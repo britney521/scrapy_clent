@@ -4,12 +4,12 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Set
 
 from .project_settings import LOG_DIR, LOG_LEVEL
 
 
-_CONFIGURED: set[str] = set()
+_CONFIGURED: Set[str] = set()
 
 
 def get_logger(app_name: str = 'app'):
